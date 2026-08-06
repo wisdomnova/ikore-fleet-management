@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Afacad:ital,wght@0,400..700;1,400..700&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -17,8 +18,8 @@
   --red:#C0442A;
   --red-soft:#F7E4DE;
   --radius:10px;
-  --font-display:'Overpass',system-ui,sans-serif;
-  --font-body:'Public Sans',system-ui,sans-serif;
+  --font-display:'Afacad',system-ui,sans-serif;
+  --font-body:'Afacad',system-ui,sans-serif;
   --font-mono:'Overpass Mono',ui-monospace,monospace;
 }
 
