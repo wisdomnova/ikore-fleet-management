@@ -155,15 +155,10 @@ export default function FleetBoardPage() {
                   <div className="scheduler-vehicle-header" key={c.id}>
                     <span className="v-plate-tag">{c.plate}</span>
                     <span className="v-name-title">{c.name}</span>
-                    <div className="v-meta-info">
-                      <div className="v-fuel-wrap">
-                        <span>Fuel {c.fuel}%</span>
-                        <div className="v-fuel-bar">
-                          <div className={`v-fuel-fill ${fc}`} style={{ width: `${c.fuel}%` }} />
-                        </div>
-                      </div>
+                    <div className="v-meta-info" style={{ gap: "2px" }}>
+                      <span style={{ fontSize: "0.74rem", color: "#6B7280" }}>Fuel {c.fuel}%</span>
                       {c.papers && (
-                        <span style={{ color: "var(--amber)", fontSize: "0.7rem", fontWeight: 500 }}>
+                        <span style={{ color: "var(--amber)", fontSize: "0.72rem", fontWeight: 500 }}>
                           {c.papers}
                         </span>
                       )}

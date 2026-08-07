@@ -54,7 +54,7 @@ export default function BookCarPage() {
     }
   }, [currentUser]);
 
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBookMsg({ text: "", type: "" });
     if (!currentUser) return;
@@ -96,8 +96,7 @@ export default function BookCarPage() {
       return;
     }
 
-    const newBk = {
-      id: nextBookingId,
+    const newBkFields = {
       carId: bkCar,
       date: bkDate,
       start: bkStart,
@@ -108,20 +107,35 @@ export default function BookCarPage() {
       dest: bkDest.trim() || "None",
       driver: bkDriver,
       purpose: bkPurpose.trim(),
-      manager: bkManager,
-      status: "pending" as const
+      manager: bkManager
     };
 
-    setBookings([...bookings, newBk]);
-    setNextBookingId(nextBookingId + 1);
+    try {
+      const response = await fetch("http://localhost:3001/api/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(newBkFields)
+      });
 
-    setBookMsg({
-      text: `Request sent. ${targetCar?.plate || "Vehicle"} is held for you, ${bkStart} - ${bkEnd}, awaiting approval from ${bkManager}.`,
-      type: "ok"
-    });
-    setBkDest("");
-    setBkPurpose("");
-    showToastMsg("Request sent for approval");
+      if (!response.ok) {
+        throw new Error("Failed to create booking.");
+      }
+
+      const createdBooking = await response.json();
+      setBookings([...bookings, createdBooking]);
+
+      setBookMsg({
+        text: `Request sent. ${targetCar?.plate || "Vehicle"} is held for you, ${bkStart} - ${bkEnd}, awaiting approval from ${bkManager}.`,
+        type: "ok"
+      });
+      setBkDest("");
+      setBkPurpose("");
+      showToastMsg("Request sent for approval");
+    } catch (err) {
+      setBookMsg({ text: "Failed to send request to the server.", type: "err" });
+    }
   };
 
   const vehicleOptions = cars.map((c) => ({
