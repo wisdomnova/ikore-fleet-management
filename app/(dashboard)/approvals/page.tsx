@@ -30,41 +30,49 @@ export default function ApprovalsPage() {
   };
 
   // Actions
-  const handleApprove = (id: number) => {
+  const handleApprove = async (id: number) => {
     if (!currentUser) return;
-    setBookings(
-      bookings.map((b) =>
-        b.id === id
-          ? {
-              ...b,
-              status: "approved",
-              decidedAt: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-              decidedBy: currentUser.name
-            }
-          : b
-      )
-    );
-    showToastMsg("Approved — trip confirmed");
+    try {
+      const response = await fetch(`http://localhost:3001/api/bookings/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "approved",
+          decidedAt: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+          decidedBy: currentUser.name
+        })
+      });
+      if (!response.ok) throw new Error();
+      const updated = await response.json();
+      setBookings(bookings.map((b) => (b.id === id ? updated : b)));
+      showToastMsg("Approved — trip confirmed");
+    } catch (err) {
+      showToastMsg("Failed to approve request");
+    }
   };
 
-  const handleDecline = (id: number) => {
+  const handleDecline = async (id: number) => {
     if (!currentUser) return;
-    setBookings(
-      bookings.map((b) =>
-        b.id === id
-          ? {
-              ...b,
-              status: "declined",
-              decidedAt: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-              decidedBy: currentUser.name
-            }
-          : b
-      )
-    );
-    showToastMsg("Declined — slot freed");
+    try {
+      const response = await fetch(`http://localhost:3001/api/bookings/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "declined",
+          decidedAt: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+          decidedBy: currentUser.name
+        })
+      });
+      if (!response.ok) throw new Error();
+      const updated = await response.json();
+      setBookings(bookings.map((b) => (b.id === id ? updated : b)));
+      showToastMsg("Declined — slot freed");
+    } catch (err) {
+      showToastMsg("Failed to decline request");
+    }
   };
 
-  const handleSaveAdjustment = (id: number, fields: Partial<typeof bookings[0]>) => {
+  const handleSaveAdjustment = async (id: number, fields: Partial<typeof bookings[0]>) => {
     if (fields.start && fields.end) {
       if (mins(fields.start) < DAY_START * 60 || mins(fields.end) > DAY_END * 60) {
         showToastMsg("Trips must fall between 08:00 and 22:00");
@@ -101,33 +109,36 @@ export default function ApprovalsPage() {
       }
     }
 
-    setBookings(
-      bookings.map((b) => {
-        if (b.id === id) {
-          const updated = {
-            ...b,
-            ...fields,
-            adjustedBy: currentUser?.name
-          };
-          if (fields.mode && fields.mode !== "Office car") {
-            // retain cost/receipt
-          } else if (fields.mode === "Office car") {
-            delete updated.cost;
-            delete updated.receiptName;
-            delete updated.receiptURL;
-          }
-          return updated;
-        }
-        return b;
-      })
-    );
+    const updatedFields = {
+      ...fields,
+      adjustedBy: currentUser?.name
+    };
 
-    const c = cars.find((car) => car.id === finalCarId);
-    showToastMsg(
-      finalMode === "Office car" || !finalMode
-        ? `Trip updated — ${c?.name || "Vehicle"} assigned`
-        : `Trip moved to ${finalMode} — office car released`
-    );
+    if (fields.mode === "Office car") {
+      (updatedFields as any).cost = null;
+      (updatedFields as any).receiptName = null;
+      (updatedFields as any).receiptURL = null;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/bookings/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedFields)
+      });
+      if (!response.ok) throw new Error();
+      const updated = await response.json();
+      setBookings(bookings.map((b) => (b.id === id ? updated : b)));
+
+      const c = cars.find((car) => car.id === finalCarId);
+      showToastMsg(
+        finalMode === "Office car" || !finalMode
+          ? `Trip updated — ${c?.name || "Vehicle"} assigned`
+          : `Trip moved to ${finalMode} — office car released`
+      );
+    } catch (err) {
+      showToastMsg("Failed to save adjustments");
+    }
   };
 
   const isAdminUser = currentUser?.name === ADMIN_NAME;

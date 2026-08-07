@@ -1755,6 +1755,7 @@ strong,
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: #6B7280;
+  border-bottom: 1px dashed #E5E7EB;
 }
 
 /* Vehicle Grid Columns (containing lines and blocks) */
@@ -1773,7 +1774,7 @@ strong,
 /* Horizontal Grid Cell representing each hour row */
 .scheduler-grid-row-cell {
   height: 60px;
-  border-bottom: 1px solid #F3F4F6;
+  border-bottom: 1px dashed #E5E7EB;
 }
 
 .scheduler-grid-row-cell:last-child {

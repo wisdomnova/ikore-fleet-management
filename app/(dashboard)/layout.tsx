@@ -300,30 +300,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.push("/signin");
     }
 
-    const storedCars = localStorage.getItem("fleet_cars");
-    const storedBookings = localStorage.getItem("fleet_bookings");
+    const fetchInitialData = async () => {
+      try {
+        const [carsRes, bookingsRes] = await Promise.all([
+          fetch("http://localhost:3001/api/vehicles"),
+          fetch("http://localhost:3001/api/bookings")
+        ]);
+        if (carsRes.ok) {
+          const carsData = await carsRes.json();
+          setCars(carsData);
+        } else {
+          setCars(initialCars);
+        }
+        if (bookingsRes.ok) {
+          const bookingsData = await bookingsRes.json();
+          setBookings(bookingsData);
+        } else {
+          setBookings([]);
+        }
+      } catch (err) {
+        console.error("Failed to fetch initial data", err);
+        setCars(initialCars);
+        setBookings([]);
+      }
+    };
+    fetchInitialData();
+
     const storedFuel = localStorage.getItem("fleet_fuelLogs");
     const storedMaint = localStorage.getItem("fleet_maintLogs");
     const storedIssues = localStorage.getItem("fleet_issueLogs");
-
-    if (storedCars) setCars(JSON.parse(storedCars));
-    else setCars(initialCars);
-
-    const iso = new Date().toISOString().slice(0, 10);
-    if (storedBookings) {
-      setBookings(JSON.parse(storedBookings));
-    } else {
-      setBookings([
-        { id: 1, carId: 1, date: iso, start: "09:00", end: "12:30", staff: "Godwin Okokoro Abuename", dept: "MERL", co: "Tractrac", dest: "Gwagwalada", driver: "Peter Agbo", purpose: "Field monitoring visit", manager: "Stephen Aguebor", status: "approved" },
-        { id: 2, carId: 2, date: iso, start: "10:00", end: "11:00", staff: "Atuonwu Adanna", dept: "Communications", co: "Tractrac", dest: "NTA Studios", driver: "Bolt ride (arranged)", purpose: "Media interview", manager: "Godson Ohuruogu", status: "approved", mode: "Bolt", adjustedBy: "Godsfavour Nyoyoko", cost: 4500, receiptName: "bolt-receipt-06aug.jpg" },
-        { id: 3, carId: 3, date: iso, start: "08:30", end: "16:00", staff: "Gbenga Ariyo", dept: "None", co: "Ikore", dest: "Nasarawa", driver: "Louis Ogbuneke", purpose: "Cooperative onboarding", manager: "Nkechi Ibekwe", status: "approved" },
-        { id: 4, carId: 2, date: iso, start: "13:00", end: "15:30", staff: "Grace John", dept: "Finance", co: "Tractrac", dest: "CBN, Central Area", driver: "Peter Agbo", purpose: "Bank documentation", manager: "Ekene Nnolum Bright", status: "approved" },
-        { id: 5, carId: 4, date: iso, start: "09:00", end: "18:00", staff: "Isreal Olatunde", dept: "IT", co: "Tractrac", dest: "Idu server site", driver: "Self-drive (approved staff)", purpose: "Server maintenance", manager: "Godsfavour Nyoyoko", status: "approved" },
-        { id: 6, carId: 5, date: iso, start: "14:00", end: "20:00", staff: "Theresa Abedo", dept: "None", co: "Ikore", dest: "Airport pickup", driver: "Louis Ogbuneke", purpose: "Guest pickup", manager: "Kathleen Okany", status: "approved" },
-        { id: 7, carId: 2, date: iso, start: "16:00", end: "18:00", staff: "Isaiah Ogede", dept: "Communications", co: "Tractrac", dest: "Transcorp Hilton", driver: "Ameh Friday", purpose: "Partner event coverage", manager: "Godson Ohuruogu", status: "pending" },
-        { id: 8, carId: 1, date: iso, start: "16:30", end: "19:00", staff: "Favour Jauro", dept: "None", co: "Ikore", dest: "Kuje cooperative site", driver: "Ameh Friday", purpose: "Data collection follow-up", manager: "Nkechi Ibekwe", status: "pending" }
-      ]);
-    }
 
     if (storedFuel) setFuelLogs(JSON.parse(storedFuel));
     else setFuelLogs([

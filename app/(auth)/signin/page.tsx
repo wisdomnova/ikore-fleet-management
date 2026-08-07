@@ -17,7 +17,7 @@ export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loginMsg, setLoginMsg] = useState({ text: "", type: "" });
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     setLoginMsg({ text: "", type: "" });
     if (!pickedCo) {
       setLoginMsg({ text: "Choose your company first.", type: "err" });
@@ -27,15 +27,33 @@ export default function SignInPage() {
       setLoginMsg({ text: "Select your name from the staff list.", type: "err" });
       return;
     }
-    if (loginPw !== DEFAULT_PW) {
-      setLoginMsg({ text: "Wrong password. For this demo the password is fleet123.", type: "err" });
-      return;
-    }
 
     const matched = STAFF.find((s) => s.name === loginStaff);
-    if (matched) {
-      localStorage.setItem("fleet_currentUser", JSON.stringify(matched));
+    if (!matched) return;
+
+    try {
+      const response = await fetch("http://localhost:3001/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          username: matched.user,
+          password: loginPw
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setLoginMsg({ text: data.error || "Wrong password.", type: "err" });
+        return;
+      }
+
+      localStorage.setItem("fleet_currentUser", JSON.stringify(data.user));
       router.push("/");
+    } catch (err) {
+      setLoginMsg({ text: "Failed to connect to authentication server.", type: "err" });
     }
   };
 
