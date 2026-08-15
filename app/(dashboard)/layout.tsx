@@ -263,7 +263,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Today Date details
   const [todayISO, setTodayISO] = useState("");
   const [todayFormatted, setTodayFormatted] = useState("");
-  const [clockStr, setClockStr] = useState("—");
+  const [clockStr, setClockStr] = useState("-");
 
   // Toast state
   const [toastMsg, setToastMsg] = useState("");

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TracTrac & Ikore — Fleet Manager",
+  title: "TracTrac & Ikore - Fleet Manager",
   description: "Shared motorpool fleet management system for TracTrac and Ikore.",
 };
 

@@ -149,7 +149,7 @@ export default function LocationsPage() {
                   </div>
                   {c.papers && (
                     <div style={{ color: "#D97706", fontWeight: 500, marginTop: "4px" }}>
-                      {c.papers.replace("—", "-")}
+                      {c.papers.replace("-", "-")}
                     </div>
                   )}
                 </div>

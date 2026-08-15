@@ -46,7 +46,7 @@ export default function ApprovalsPage() {
       if (!response.ok) throw new Error();
       const updated = await response.json();
       setBookings(bookings.map((b) => (b.id === id ? updated : b)));
-      showToastMsg("Approved — trip confirmed");
+      showToastMsg("Approved - trip confirmed");
     } catch (err) {
       showToastMsg("Failed to approve request");
     }
@@ -67,7 +67,7 @@ export default function ApprovalsPage() {
       if (!response.ok) throw new Error();
       const updated = await response.json();
       setBookings(bookings.map((b) => (b.id === id ? updated : b)));
-      showToastMsg("Declined — slot freed");
+      showToastMsg("Declined - slot freed");
     } catch (err) {
       showToastMsg("Failed to decline request");
     }
@@ -134,8 +134,8 @@ export default function ApprovalsPage() {
       const c = cars.find((car) => car.id === finalCarId);
       showToastMsg(
         finalMode === "Office car" || !finalMode
-          ? `Trip updated — ${c?.name || "Vehicle"} assigned`
-          : `Trip moved to ${finalMode} — office car released`
+          ? `Trip updated - ${c?.name || "Vehicle"} assigned`
+          : `Trip moved to ${finalMode} - office car released`
       );
     } catch (err) {
       showToastMsg("Failed to save adjustments");
@@ -153,7 +153,7 @@ export default function ApprovalsPage() {
         <h2>Approvals</h2>
         <p className="desc" id="apprDesc">
           {isAdminUser
-            ? "As fleet manager you can see and decide every pending request across both companies, and you can adjust any trip — change the vehicle, driver, or timing, or move it to a car hire service or Bolt."
+            ? "As fleet manager you can see and decide every pending request across both companies, and you can adjust any trip - change the vehicle, driver, or timing, or move it to a car hire service or Bolt."
             : "Booking requests routed to you as an approver. Pending requests hold their slot on the fleet board (shown dashed) so the time cannot be double-booked while a decision is made."}
         </p>
       </div>
@@ -170,7 +170,7 @@ export default function ApprovalsPage() {
                     {b.co === "Tractrac" ? "TracTrac" : "Ikore"}
                   </span>{" "}
                   <span style={{ color: "var(--muted)", fontWeight: 400 }}>requests</span>{" "}
-                  {isOfficeTrip(b) && c ? `${c.plate} — ${c.name}` : ""}{" "}
+                  {isOfficeTrip(b) && c ? `${c.plate} - ${c.name}` : ""}{" "}
                   {!isOfficeTrip(b) && (
                     <span className={`mode-chip ${b.mode === "Bolt" ? "bolt" : "hire"}`}>
                       {b.mode}
@@ -183,7 +183,7 @@ export default function ApprovalsPage() {
                 {b.date === todayISO ? "Today" : b.date}, {b.start}–{b.end} ·{" "}
                 {b.dest || "No destination given"} · {b.driver}
                 <br />
-                {b.purpose && `Purpose: ${b.purpose} · `}Department: {b.dept || "—"} · Approver:{" "}
+                {b.purpose && `Purpose: ${b.purpose} · `}Department: {b.dept || "-"} · Approver:{" "}
                 <strong>{b.manager}</strong>
                 {b.adjustedBy && " · Adjusted by fleet manager"}
               </div>
@@ -198,7 +198,7 @@ export default function ApprovalsPage() {
 
               {isAdminUser && (
                 <details className="adj">
-                  <summary>Fleet manager — adjust this trip</summary>
+                  <summary>Fleet manager - adjust this trip</summary>
                   <div className="frow">
                     <div>
                       <label>Trip mode</label>
@@ -222,9 +222,9 @@ export default function ApprovalsPage() {
                       >
                         {cars.map((car) => (
                           <option key={car.id} value={car.id} disabled={car.shop}>
-                            {car.plate !== "TBD" ? car.plate + " — " : ""}
+                            {car.plate !== "TBD" ? car.plate + " - " : ""}
                             {car.name} ({car.co === "Tractrac" ? "TracTrac" : "Ikore"})
-                            {car.shop ? " — workshop" : ""}
+                            {car.shop ? " - workshop" : ""}
                           </option>
                         ))}
                       </select>
@@ -320,7 +320,7 @@ export default function ApprovalsPage() {
                 <div className="appr-card" style={{ borderLeftColor: "var(--line)" }} key={b.id}>
                   <div className="appr-top">
                     <span className="appr-title">
-                      {b.staff} — {isOfficeTrip(b) && c ? `${c.plate}, ` : ""}
+                      {b.staff} - {isOfficeTrip(b) && c ? `${c.plate}, ` : ""}
                       {b.start}–{b.end}{" "}
                       <span className={`status-pill free`}>Approved</span>
                     </span>
@@ -340,7 +340,7 @@ export default function ApprovalsPage() {
                   </div>
 
                   <details className="adj">
-                    <summary>Fleet manager — adjust this trip</summary>
+                    <summary>Fleet manager - adjust this trip</summary>
                     <div className="frow">
                       <div>
                         <label>Trip mode</label>
@@ -364,9 +364,9 @@ export default function ApprovalsPage() {
                         >
                           {cars.map((car) => (
                             <option key={car.id} value={car.id} disabled={car.shop}>
-                              {car.plate !== "TBD" ? car.plate + " — " : ""}
+                              {car.plate !== "TBD" ? car.plate + " - " : ""}
                               {car.name} ({car.co === "Tractrac" ? "TracTrac" : "Ikore"})
-                              {car.shop ? " — workshop" : ""}
+                              {car.shop ? " - workshop" : ""}
                             </option>
                           ))}
                         </select>
@@ -461,7 +461,7 @@ export default function ApprovalsPage() {
             <div className="appr-card done" key={b.id}>
               <div className="appr-top">
                 <span className="appr-title">
-                  {b.staff} — {c?.plate}, {b.start}–{b.end}
+                  {b.staff} - {c?.plate}, {b.start}–{b.end}
                 </span>
                 <span className={`status-pill ${cls}`}>{label}</span>
               </div>

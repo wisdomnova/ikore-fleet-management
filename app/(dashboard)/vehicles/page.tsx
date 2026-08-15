@@ -153,7 +153,7 @@ export default function VehiclesPage() {
         <p className="desc">
           Fleet manager only. Edit each vehicle's plate, model, owning company, odometer, and
           document notes, move vehicles in or out of the workshop, or add a new vehicle to the pool.
-          Changes apply everywhere immediately — the fleet board, booking form, maintenance, and
+          Changes apply everywhere immediately - the fleet board, booking form, maintenance, and
           locations.
         </p>
       </div>
@@ -228,7 +228,7 @@ export default function VehiclesPage() {
                     <input
                       type="text"
                       value={fields.papers}
-                      placeholder="e.g. Papers renewal — March 2027"
+                      placeholder="e.g. Papers renewal - March 2027"
                       onChange={(e) => setField(c.id, { papers: e.target.value })}
                     />
                   </div>
@@ -238,8 +238,8 @@ export default function VehiclesPage() {
                       value={fields.shop ? "yes" : "no"}
                       onChange={(e) => setField(c.id, { shop: e.target.value === "yes" })}
                     >
-                      <option value="no">In service — bookable</option>
-                      <option value="yes">In workshop — not bookable</option>
+                      <option value="no">In service - bookable</option>
+                      <option value="yes">In workshop - not bookable</option>
                     </select>
                   </div>
                 </div>
@@ -257,7 +257,7 @@ export default function VehiclesPage() {
                   </button>
                   {hasBookings && (
                     <span className="adj-note" style={{ margin: 0 }}>
-                      Has bookings on record — cannot be removed
+                      Has bookings on record - cannot be removed
                     </span>
                   )}
                 </div>
@@ -330,7 +330,7 @@ export default function VehiclesPage() {
                 <input
                   type="text"
                   id="nvPapers"
-                  placeholder="e.g. Papers renewal — March 2027"
+                  placeholder="e.g. Papers renewal - March 2027"
                   value={nvPapers}
                   onChange={(e) => setNvPapers(e.target.value)}
                 />
