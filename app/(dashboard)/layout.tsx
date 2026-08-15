@@ -435,7 +435,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
                 <img src="/tractrac.png" alt="TracTrac" style={{ height: "24px", objectFit: "contain", maxWidth: "45%" }} />
                 <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#9CA3AF" }}>×</span>
-                <img src="/ikore.png" alt="Ikore" style={{ height: "24px", objectFit: "contain", maxWidth: "45%" }} />
+                <img src="/ikore.png" alt="Ikore" style={{ height: "24px", objectFit: "contain", maxWidth: "45%", margin: "0 -8px" }} />
               </div>
               <div style={{ fontSize: "0.74rem", fontWeight: 500, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 Shared Operations
