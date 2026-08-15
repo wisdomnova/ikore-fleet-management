@@ -17,6 +17,8 @@ export default function SignInPage() {
   const [loginPw, setLoginPw] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loginMsg, setLoginMsg] = useState({ text: "", type: "" });
+  const [isPending, setIsPending] = useState(false);
+  const [btnHover, setBtnHover] = useState(false);
 
   const handleSignIn = async () => {
     setLoginMsg({ text: "", type: "" });
@@ -32,6 +34,7 @@ export default function SignInPage() {
     const matched = STAFF.find((s) => s.name === loginStaff);
     if (!matched) return;
 
+    setIsPending(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
@@ -48,6 +51,7 @@ export default function SignInPage() {
 
       if (!response.ok) {
         setLoginMsg({ text: data.error || "Wrong password.", type: "err" });
+        setIsPending(false);
         return;
       }
 
@@ -55,6 +59,7 @@ export default function SignInPage() {
       router.push("/");
     } catch (err) {
       setLoginMsg({ text: "Failed to connect to authentication server.", type: "err" });
+      setIsPending(false);
     }
   };
 
@@ -269,6 +274,7 @@ export default function SignInPage() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
                 <button
                   type="button"
+                  disabled={isPending}
                   style={{
                     border: pickedCo === "Tractrac" ? "1.5px solid var(--tt)" : "1.5px solid #E5E7EB",
                     background: pickedCo === "Tractrac" ? "var(--tt-soft)" : "#FFFFFF",
@@ -277,7 +283,8 @@ export default function SignInPage() {
                     padding: "16px 12px",
                     fontWeight: 500,
                     fontSize: "0.85rem",
-                    cursor: "pointer",
+                    cursor: isPending ? "not-allowed" : "pointer",
+                    opacity: isPending ? 0.6 : 1,
                     display: "flex",
                     alignItems: "center",
                     gap: "8px",
@@ -291,6 +298,7 @@ export default function SignInPage() {
                 </button>
                 <button
                   type="button"
+                  disabled={isPending}
                   style={{
                     border: pickedCo === "Ikore" ? "1.5px solid var(--ik)" : "1.5px solid #E5E7EB",
                     background: pickedCo === "Ikore" ? "var(--ik-soft)" : "#FFFFFF",
@@ -299,7 +307,8 @@ export default function SignInPage() {
                     padding: "16px 12px",
                     fontWeight: 500,
                     fontSize: "0.85rem",
-                    cursor: "pointer",
+                    cursor: isPending ? "not-allowed" : "pointer",
+                    opacity: isPending ? 0.6 : 1,
                     display: "flex",
                     alignItems: "center",
                     gap: "8px",
@@ -332,7 +341,7 @@ export default function SignInPage() {
                 options={staffOptions}
                 value={loginStaff}
                 onChange={setLoginStaff}
-                disabled={!pickedCo}
+                disabled={isPending || !pickedCo}
                 placeholder={pickedCo ? "Select your name…" : "Select your company first…"}
                 icon={<IconUser size={18} stroke={1.5} />}
                 searchable={true}
@@ -359,9 +368,10 @@ export default function SignInPage() {
                   id="loginPw"
                   placeholder="Enter password"
                   value={loginPw}
+                  disabled={isPending}
                   onChange={(e) => setLoginPw(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSignIn();
+                    if (e.key === "Enter" && !isPending) handleSignIn();
                   }}
                   style={{
                     width: "100%",
@@ -371,11 +381,14 @@ export default function SignInPage() {
                     fontSize: "0.88rem",
                     fontWeight: 400,
                     color: "#111827",
-                    outline: "none"
+                    outline: "none",
+                    background: isPending ? "#F3F4F6" : "#FFFFFF",
+                    cursor: isPending ? "not-allowed" : "text"
                   }}
                 />
                 <button
                   type="button"
+                  disabled={isPending}
                   onClick={() => setShowPassword(!showPassword)}
                   style={{
                     position: "absolute",
@@ -384,7 +397,7 @@ export default function SignInPage() {
                     transform: "translateY(-50%)",
                     background: "none",
                     border: "none",
-                    cursor: "pointer",
+                    cursor: isPending ? "not-allowed" : "pointer",
                     color: "#9CA3AF",
                     display: "flex",
                     alignItems: "center",
@@ -423,26 +436,30 @@ export default function SignInPage() {
             {/* Submit Button */}
             <button
               type="button"
+              disabled={isPending}
+              onMouseEnter={() => !isPending && setBtnHover(true)}
+              onMouseLeave={() => setBtnHover(false)}
               style={{
-                background: "#111827",
+                background: isPending ? "#6B7280" : btnHover ? "#374151" : "#111827",
                 color: "#FFFFFF",
                 border: "none",
                 borderRadius: "10px",
                 padding: "14px 20px",
                 fontWeight: 500,
                 fontSize: "0.9rem",
-                cursor: "pointer",
+                cursor: isPending ? "not-allowed" : "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "8px",
                 outline: "none",
                 width: "100%",
-                marginTop: "8px"
+                marginTop: "8px",
+                transition: "background-color 0.2s"
               }}
               onClick={handleSignIn}
             >
-              Continue <IconArrowRight size={18} stroke={1.5} />
+              {isPending ? "Signing in..." : "Continue"} <IconArrowRight size={18} stroke={1.5} />
             </button>
           </div>
 
