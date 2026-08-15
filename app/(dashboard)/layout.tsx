@@ -432,10 +432,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <aside className="sidebar" style={{ background: "#F9FAFB", colorScheme: "light" }}>
           <div>
             <div style={{ padding: "0 12px", marginBottom: "28px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "16px" }}>
-                <img src="/tractrac.png" alt="TracTrac" style={{ height: "24px", objectFit: "contain", maxWidth: "45%" }} />
-                <span style={{ fontSize: "0.78rem", fontWeight: 600, color: "#9CA3AF" }}>×</span>
-                <img src="/ikore.png" alt="Ikore" style={{ height: "24px", objectFit: "contain", maxWidth: "45%", margin: "0 -8px" }} />
+              <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "20px" }}>
+                <img src="/tractrac.png" alt="TracTrac" style={{ height: "22px", width: "22px", objectFit: "contain" }} />
+                <span style={{ fontSize: "0.65rem", fontWeight: 600, color: "#D1D5DB" }}>×</span>
+                <div style={{ width: "22px", height: "22px", overflow: "hidden", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <img 
+                    src="/ikore.png" 
+                    alt="Ikore" 
+                    style={{ 
+                      height: "34px", 
+                      maxWidth: "none", 
+                      objectFit: "contain", 
+                      transform: "scale(2.2)", 
+                      position: "absolute",
+                      top: "-2px"
+                    }} 
+                  />
+                </div>
               </div>
               <div style={{ fontSize: "0.74rem", fontWeight: 500, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 Shared Operations
