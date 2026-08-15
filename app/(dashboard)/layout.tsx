@@ -370,27 +370,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (cars.length > 0) localStorage.setItem("fleet_cars", JSON.stringify(cars));
+    localStorage.setItem("fleet_cars", JSON.stringify(cars));
   }, [cars, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (bookings.length > 0) localStorage.setItem("fleet_bookings", JSON.stringify(bookings));
+    localStorage.setItem("fleet_bookings", JSON.stringify(bookings));
   }, [bookings, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (fuelLogs.length > 0) localStorage.setItem("fleet_fuelLogs", JSON.stringify(fuelLogs));
+    localStorage.setItem("fleet_fuelLogs", JSON.stringify(fuelLogs));
   }, [fuelLogs, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (maintLogs.length > 0) localStorage.setItem("fleet_maintLogs", JSON.stringify(maintLogs));
+    localStorage.setItem("fleet_maintLogs", JSON.stringify(maintLogs));
   }, [maintLogs, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return;
-    if (issueLogs.length > 0) localStorage.setItem("fleet_issueLogs", JSON.stringify(issueLogs));
+    localStorage.setItem("fleet_issueLogs", JSON.stringify(issueLogs));
   }, [issueLogs, isLoaded]);
 
   const handleSignOut = () => {
