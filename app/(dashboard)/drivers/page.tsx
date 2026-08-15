@@ -76,7 +76,7 @@ export default function DriversPage() {
 
       setBookings(bookings.map((x) => (x.id === bookingId ? updatedBk : x)));
       setCars(cars.map((car) => (car.id === b.carId ? updatedCar : car)));
-      showToastMsg(`Trip started — ${c.name} at ${fmtN(startOdo)} km`);
+      showToastMsg(`Trip started - ${c.name} at ${fmtN(startOdo)} km`);
     } catch (err) {
       showToastMsg("Failed to start trip on server");
     }
@@ -118,7 +118,7 @@ export default function DriversPage() {
 
       setBookings(bookings.map((x) => (x.id === bookingId ? updatedBk : x)));
       setCars(cars.map((car) => (car.id === b.carId ? updatedCar : car)));
-      showToastMsg(`Trip completed — ${fmtN(endOdo - (b.startOdo || 0))} km recorded`);
+      showToastMsg(`Trip completed - ${fmtN(endOdo - (b.startOdo || 0))} km recorded`);
     } catch (err) {
       showToastMsg("Failed to complete trip on server");
     }
@@ -136,11 +136,11 @@ export default function DriversPage() {
             className="panel"
             style={{ maxWidth: "860px", marginBottom: "14px", borderLeft: "4px solid var(--ik)" }}
           >
-            <h2>My trips today — {currentUser.name}</h2>
+            <h2>My trips today - {currentUser.name}</h2>
             <p className="desc" style={{ marginBottom: 0 }}>
               Your approved assignments for{" "}
               {tNow.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" })}
-              . Enter the odometer reading when you set off and again when you finish — every trip's
+              . Enter the odometer reading when you set off and again when you finish - every trip's
               mileage is recorded against the vehicle.
             </p>
           </div>
@@ -216,7 +216,7 @@ export default function DriversPage() {
                         <input
                           type="number"
                           min="0"
-                          placeholder={`Odometer at start — now ${fmtN(c?.odo || 0)} km`}
+                          placeholder={`Odometer at start - now ${fmtN(c?.odo || 0)} km`}
                           value={mileInputs[t.id] !== undefined ? mileInputs[t.id] : c?.odo || 0}
                           onChange={(e) =>
                             setMileInputs({ ...mileInputs, [t.id]: e.target.value })
@@ -266,7 +266,7 @@ export default function DriversPage() {
           const exp = new Date(d.licExp);
           const days = Math.round((exp.getTime() - new Date().getTime()) / 86400000);
           const expCls = days < 60 ? "lic-warn" : "lic-ok";
-          const expNote = days < 0 ? " — expired!" : days < 60 ? ` — renew soon (${days} days)` : "";
+          const expNote = days < 0 ? " - expired!" : days < 60 ? ` - renew soon (${days} days)` : "";
           const trips = bookings.filter(
             (b) =>
               b.driver === d.name && b.date === todayISO && b.status === "approved" && isOfficeTrip(b)
@@ -312,7 +312,7 @@ export default function DriversPage() {
                   <span className="v">
                     {lastFuel
                       ? `${cars.find((c) => c.id === lastFuel.carId)?.plate}, ${lastFuel.litres} L`
-                      : "—"}
+                      : "-"}
                   </span>
                 </div>
               </div>

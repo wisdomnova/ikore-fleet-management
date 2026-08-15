@@ -133,7 +133,7 @@ export default function FuelLogPage() {
               >
                 {cars.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.plate !== "TBD" ? c.plate + " — " : ""}
+                    {c.plate !== "TBD" ? c.plate + " - " : ""}
                     {c.name} ({c.co === "Tractrac" ? "TracTrac" : "Ikore"})
                   </option>
                 ))}
@@ -182,7 +182,7 @@ export default function FuelLogPage() {
           <div className="frow">
             <div>
               <label htmlFor="flLevel">
-                Tank level after filling — <span className="range-out">{flLevel}%</span>
+                Tank level after filling - <span className="range-out">{flLevel}%</span>
               </label>
               <input
                 type="range"

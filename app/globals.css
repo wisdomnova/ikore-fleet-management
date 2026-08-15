@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 /* Disable Tailwind's automatic dark mode (prefers-color-scheme).
-   Dark styles only apply if .dark class is added manually — we never add it. */
+   Dark styles only apply if .dark class is added manually - we never add it. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Force all browser dark-mode styles off — this app is light-only */
+/* Force all browser dark-mode styles off - this app is light-only */
 @media (prefers-color-scheme: dark) {
   * {
     color-scheme: light !important;

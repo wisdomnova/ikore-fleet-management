@@ -35,7 +35,7 @@ export default function MaintenancePage() {
   const todayISO = new Date().toISOString().slice(0, 10);
 
   const [isCar, setIsCar] = useState(1);
-  const [isSev, setIsSev] = useState("Low — note for next service");
+  const [isSev, setIsSev] = useState("Low - note for next service");
   const [isDesc, setIsDesc] = useState("");
   const [issueMsg, setIssueMsg] = useState({ text: "", type: "" });
 
@@ -203,11 +203,11 @@ export default function MaintenancePage() {
   return (
     <section className="active">
       <div className="panel" style={{ maxWidth: "860px", marginBottom: "20px" }}>
-        <h2>Maintenance status — all vehicles</h2>
+        <h2>Maintenance status - all vehicles</h2>
         <p className="desc">
           Routine servicing is due every 5,000 km; status below compares each car's odometer
-          against its last routine service. Other repairs — brake pads, tyres, suspension and so
-          on — are recorded in the maintenance log and history underneath.
+          against its last routine service. Other repairs - brake pads, tyres, suspension and so
+          on - are recorded in the maintenance log and history underneath.
         </p>
       </div>
 
@@ -280,8 +280,8 @@ export default function MaintenancePage() {
       <div className="panel" style={{ marginTop: "26px" }}>
         <h2>Report a vehicle issue</h2>
         <p className="desc">
-          Drivers log faults and observations here — anything from a warning light to unusual noises
-          — so the fleet manager can schedule the fix before it becomes a breakdown.
+          Drivers log faults and observations here - anything from a warning light to unusual noises
+          - so the fleet manager can schedule the fix before it becomes a breakdown.
         </p>
         {issueMsg.text && (
           <div className={`msg ${issueMsg.type === "err" ? "err" : "ok"}`}>
@@ -299,7 +299,7 @@ export default function MaintenancePage() {
               >
                 {cars.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.plate !== "TBD" ? c.plate + " — " : ""}
+                    {c.plate !== "TBD" ? c.plate + " - " : ""}
                     {c.name} ({c.co === "Tractrac" ? "TracTrac" : "Ikore"})
                   </option>
                 ))}
@@ -308,9 +308,9 @@ export default function MaintenancePage() {
             <div>
               <label htmlFor="isSev">Severity</label>
               <select id="isSev" value={isSev} onChange={(e) => setIsSev(e.target.value)}>
-                <option value="Low — note for next service">Low — note for next service</option>
-                <option value="Medium — needs attention soon">Medium — needs attention soon</option>
-                <option value="High — unsafe / stop using vehicle">High — unsafe / stop using vehicle</option>
+                <option value="Low - note for next service">Low - note for next service</option>
+                <option value="Medium - needs attention soon">Medium - needs attention soon</option>
+                <option value="High - unsafe / stop using vehicle">High - unsafe / stop using vehicle</option>
               </select>
             </div>
           </div>
@@ -433,7 +433,7 @@ export default function MaintenancePage() {
               >
                 {cars.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.plate !== "TBD" ? c.plate + " — " : ""}
+                    {c.plate !== "TBD" ? c.plate + " - " : ""}
                     {c.name} ({c.co === "Tractrac" ? "TracTrac" : "Ikore"})
                   </option>
                 ))}
@@ -555,7 +555,7 @@ export default function MaintenancePage() {
                     <td>{fmtN(s.odo)} km</td>
                     {isAdminUser && <td>₦{fmtN(s.cost)}</td>}
                     <td>{s.workshop}</td>
-                    <td>{s.notes || "—"}</td>
+                    <td>{s.notes || "-"}</td>
                   </tr>
                 );
               })}

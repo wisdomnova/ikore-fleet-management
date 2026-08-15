@@ -217,7 +217,7 @@ export default function BookCarPage() {
                 </label>
                 <input
                   type="text"
-                  value={currentUser ? `${currentUser.dept && currentUser.dept !== "—" && currentUser.dept !== "None" ? currentUser.dept + " · " : ""}${currentUser.co === "Tractrac" ? "TracTrac" : "Ikore"}` : ""}
+                  value={currentUser ? `${currentUser.dept && currentUser.dept !== "-" && currentUser.dept !== "None" ? currentUser.dept + " · " : ""}${currentUser.co === "Tractrac" ? "TracTrac" : "Ikore"}` : ""}
                   readOnly
                   style={{
                     width: "100%",
@@ -526,7 +526,7 @@ export default function BookCarPage() {
                       </td>
                       <td style={{ padding: "16px", fontSize: "0.85rem", color: "#111827" }}>
                         {b.staff}
-                        {b.dept && b.dept !== "—" && b.dept !== "None" && (
+                        {b.dept && b.dept !== "-" && b.dept !== "None" && (
                           <span style={{ color: "#6B7280", fontSize: "0.78rem" }}>
                             {" · "}{b.dept}
                           </span>
