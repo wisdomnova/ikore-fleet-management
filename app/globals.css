@@ -894,18 +894,16 @@ td .co-chip {
 
 /* ---------- Approvals ---------- */
 .appr-card {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-left: 4px solid var(--amber);
-  border-radius: var(--radius);
-  padding: 16px 18px;
-  margin-bottom: 12px;
+  background: #FFFFFF;
+  border: 1.5px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
   max-width: 760px;
 }
 
 .appr-card.done {
-  border-left-color: var(--line);
-  opacity: .75;
+  opacity: .7;
 }
 
 .appr-top {
@@ -914,18 +912,19 @@ td .co-chip {
   gap: 10px;
   flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .appr-title {
-  font-weight: 700;
-  font-size: .95rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #111827;
 }
 
 .appr-meta {
   font-size: .82rem;
-  color: var(--muted);
-  margin-bottom: 12px;
+  color: #6B7280;
+  margin-bottom: 16px;
   line-height: 1.6;
 }
 
@@ -937,46 +936,51 @@ td .co-chip {
 }
 
 .status-pill {
-  font-size: .68rem;
-  font-weight: 700;
+  font-size: .7rem;
+  font-weight: 500;
   text-transform: uppercase;
   letter-spacing: .05em;
   border-radius: 999px;
-  padding: 3px 10px;
+  padding: 4px 12px;
 }
 
 .status-pill.free {
-  background: var(--ik-soft);
-  color: var(--ik-dark);
+  background: #F0FDF4;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
 }
 
 .status-pill.trip {
-  background: var(--amber-soft);
-  color: #8a6200;
+  background: #FFF9C4;
+  color: #F57F17;
+  border: 1px solid #FFF59D;
 }
 
 .status-pill.shop {
-  background: var(--red-soft);
-  color: var(--red);
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FEE2E2;
 }
 
 .status-pill.pending {
-  background: #EDEFEA;
-  color: var(--muted);
+  background: #FFF9C4;
+  color: #F57F17;
+  border: 1px solid #FFF59D;
 }
 
 .status-pill.declined {
-  background: var(--red-soft);
-  color: var(--red);
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FEE2E2;
 }
 
 .appr-empty {
-  background: var(--panel);
-  border: 1px dashed var(--line);
-  border-radius: var(--radius);
-  padding: 26px;
+  background: #FAFBFB;
+  border: 1.5px dashed #E5E7EB;
+  border-radius: 12px;
+  padding: 40px;
   text-align: center;
-  color: var(--muted);
+  color: #6B7280;
   font-size: .88rem;
   max-width: 760px;
 }

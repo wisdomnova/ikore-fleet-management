@@ -141,11 +141,11 @@ export function useFleet() {
 }
 
 const initialCars: Car[] = [
-  { id: 1, plate: "TBD", name: "JAC T9", co: "Tractrac", fuel: 82, odo: 24230, loc: "Head office, Utako", locT: "07:42", shop: false },
-  { id: 2, plate: "TBD", name: "Toyota Highlander", co: "Tractrac", fuel: 57, odo: 60018, loc: "Garki Area 11", locT: "08:20", shop: false },
-  { id: 3, plate: "TBD", name: "Toyota Hiace Bus", co: "Tractrac", fuel: 90, odo: 48122, loc: "Idu Industrial Area", locT: "09:35", shop: false },
-  { id: 4, plate: "TBD", name: "Toyota Sienna", co: "Tractrac", fuel: 35, odo: 71880, loc: "Head office, Utako", locT: "07:30", shop: false },
-  { id: 5, plate: "YAB 706EZ", name: "Toyota Sienna", co: "Ikore", fuel: 66, odo: 52630, loc: "Ikore office", locT: "08:48", shop: false, papers: "Papers renewal: March 2027" },
+  { id: 1, plate: "TBD", name: "JAC T9", co: "Tractrac", fuel: 100, odo: 24230, loc: "Head office, Utako", locT: "07:42", shop: false },
+  { id: 2, plate: "TBD", name: "Toyota Highlander", co: "Tractrac", fuel: 100, odo: 60018, loc: "Garki Area 11", locT: "08:20", shop: false },
+  { id: 3, plate: "TBD", name: "Toyota Hiace Bus", co: "Tractrac", fuel: 100, odo: 48122, loc: "Idu Industrial Area", locT: "09:35", shop: false },
+  { id: 4, plate: "TBD", name: "Toyota Sienna", co: "Tractrac", fuel: 100, odo: 71880, loc: "Head office, Utako", locT: "07:30", shop: false },
+  { id: 5, plate: "YAB 706EZ", name: "Toyota Sienna", co: "Ikore", fuel: 100, odo: 52630, loc: "Ikore office", locT: "08:48", shop: false, papers: "Papers renewal: March 2027" },
 ];
 
 export const STAFF: Staff[] = [
@@ -435,20 +435,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "20px" }}>
                 <img src="/tractrac.png" alt="TracTrac" style={{ height: "22px", width: "22px", objectFit: "contain" }} />
                 <span style={{ fontSize: "0.65rem", fontWeight: 600, color: "#D1D5DB" }}>×</span>
-                <div style={{ width: "22px", height: "22px", overflow: "hidden", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <img 
-                    src="/ikore.png" 
-                    alt="Ikore" 
-                    style={{ 
-                      height: "34px", 
-                      maxWidth: "none", 
-                      objectFit: "contain", 
-                      transform: "scale(2.2)", 
-                      position: "absolute",
-                      top: "-2px"
-                    }} 
-                  />
-                </div>
+                <img src="/ikore-icon.png" alt="Ikore" style={{ height: "22px", width: "22px", objectFit: "contain" }} />
               </div>
               <div style={{ fontSize: "0.74rem", fontWeight: 500, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 Shared Operations
