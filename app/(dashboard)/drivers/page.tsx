@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useFleet } from "../layout";
+import { API_BASE_URL } from "../../config";
 
 const DRIVERS = [
   {name:"Peter Agbo",     co:"Tractrac" as const, phone:"0805 771 0284", licence:"ABJ 11-40157 BB7", licExp:"2026-09-22", years:5,  base:"Head office, Utako"},
@@ -39,7 +40,7 @@ export default function DriversPage() {
   const isDriver = (name: string) => ["Peter Agbo", "Ameh Friday", "Louis Ogbuneke"].includes(name);
   const isAdmin = (name: string) => name === "Godsfavour Nyoyoko";
 
-  const handleStartTrip = (bookingId: number, startOdo: number) => {
+  const handleStartTrip = async (bookingId: number, startOdo: number) => {
     const b = bookings.find((x) => x.id === bookingId);
     if (!b) return;
     const c = cars.find((car) => car.id === b.carId);
@@ -54,30 +55,34 @@ export default function DriversPage() {
       return;
     }
 
-    setBookings(
-      bookings.map((x) =>
-        x.id === bookingId
-          ? {
-              ...x,
-              startOdo
-            }
-          : x
-      )
-    );
-    setCars(
-      cars.map((car) =>
-        car.id === b.carId
-          ? {
-              ...car,
-              odo: startOdo
-            }
-          : car
-      )
-    );
-    showToastMsg(`Trip started — ${c.name} at ${fmtN(startOdo)} km`);
+    try {
+      // 1. Update Booking start odometer
+      const bkRes = await fetch(`${API_BASE_URL}/api/bookings/${bookingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ startOdo })
+      });
+      if (!bkRes.ok) throw new Error("Failed to update booking start odo");
+      const updatedBk = await bkRes.json();
+
+      // 2. Update Vehicle current odometer
+      const carRes = await fetch(`${API_BASE_URL}/api/vehicles/${b.carId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ odo: startOdo })
+      });
+      if (!carRes.ok) throw new Error("Failed to update vehicle odometer");
+      const updatedCar = await carRes.json();
+
+      setBookings(bookings.map((x) => (x.id === bookingId ? updatedBk : x)));
+      setCars(cars.map((car) => (car.id === b.carId ? updatedCar : car)));
+      showToastMsg(`Trip started — ${c.name} at ${fmtN(startOdo)} km`);
+    } catch (err) {
+      showToastMsg("Failed to start trip on server");
+    }
   };
 
-  const handleEndTrip = (bookingId: number, endOdo: number) => {
+  const handleEndTrip = async (bookingId: number, endOdo: number) => {
     const b = bookings.find((x) => x.id === bookingId);
     if (!b) return;
     const c = cars.find((car) => car.id === b.carId);
@@ -92,27 +97,31 @@ export default function DriversPage() {
       return;
     }
 
-    setBookings(
-      bookings.map((x) =>
-        x.id === bookingId
-          ? {
-              ...x,
-              endOdo
-            }
-          : x
-      )
-    );
-    setCars(
-      cars.map((car) =>
-        car.id === b.carId
-          ? {
-              ...car,
-              odo: endOdo
-            }
-          : car
-      )
-    );
-    showToastMsg(`Trip completed — ${fmtN(endOdo - (b.startOdo || 0))} km recorded`);
+    try {
+      // 1. Update Booking end odometer
+      const bkRes = await fetch(`${API_BASE_URL}/api/bookings/${bookingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endOdo })
+      });
+      if (!bkRes.ok) throw new Error("Failed to update booking end odo");
+      const updatedBk = await bkRes.json();
+
+      // 2. Update Vehicle current odometer
+      const carRes = await fetch(`${API_BASE_URL}/api/vehicles/${b.carId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ odo: endOdo })
+      });
+      if (!carRes.ok) throw new Error("Failed to update vehicle odometer");
+      const updatedCar = await carRes.json();
+
+      setBookings(bookings.map((x) => (x.id === bookingId ? updatedBk : x)));
+      setCars(cars.map((car) => (car.id === b.carId ? updatedCar : car)));
+      showToastMsg(`Trip completed — ${fmtN(endOdo - (b.startOdo || 0))} km recorded`);
+    } catch (err) {
+      showToastMsg("Failed to complete trip on server");
+    }
   };
 
   const isAdminUser = currentUser && isAdmin(currentUser.name);

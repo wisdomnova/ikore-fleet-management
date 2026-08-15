@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useFleet, STAFF } from "../layout";
+import { API_BASE_URL } from "../../config";
 import Dropdown from "../../components/Dropdown";
 import { motion } from "framer-motion";
 
@@ -111,7 +112,7 @@ export default function BookCarPage() {
     };
 
     try {
-      const response = await fetch("http://localhost:3001/api/bookings", {
+      const response = await fetch(`${API_BASE_URL}/api/bookings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

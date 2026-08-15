@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useFleet } from "../layout";
+import { API_BASE_URL } from "../../config";
 
 const SERVICE_INTERVAL = 5000;
 const MAINT_CATEGORIES = [
@@ -55,7 +56,7 @@ export default function MaintenancePage() {
     return n.toLocaleString("en-NG");
   };
 
-  const handleIssueSubmit = (e: React.FormEvent) => {
+  const handleIssueSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIssueMsg({ text: "", type: "" });
     if (!currentUser) {
@@ -75,43 +76,59 @@ export default function MaintenancePage() {
     if (!c) return;
 
     const newIssue = {
-      id: nextIssueId,
       carId: isCar,
       date: todayISO,
       driver: currentUser.name,
       severity: isSev,
-      desc: isDesc.trim(),
-      status: "Open" as const
+      desc: isDesc.trim()
     };
 
-    setIssueLogs([...issueLogs, newIssue]);
-    setNextIssueId(nextIssueId + 1);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/issues`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newIssue)
+      });
+      if (!response.ok) {
+        throw new Error("Failed to log issue on server.");
+      }
+      const savedIssue = await response.json();
+      setIssueLogs([...issueLogs, savedIssue]);
 
-    setIssueMsg({
-      text: `Issue logged for ${c.name}. The fleet manager will see it here.`,
-      type: "ok"
-    });
-    setIsDesc("");
-    showToastMsg("Issue logged");
+      setIssueMsg({
+        text: `Issue logged for ${c.name}. The fleet manager will see it here.`,
+        type: "ok"
+      });
+      setIsDesc("");
+      showToastMsg("Issue logged");
+    } catch (err: any) {
+      setIssueMsg({ text: err.message || "Failed to log issue.", type: "err" });
+    }
   };
 
-  const handleResolveIssue = (id: number) => {
+  const handleResolveIssue = async (id: number) => {
     if (!currentUser) return;
-    setIssueLogs(
-      issueLogs.map((i) =>
-        i.id === id
-          ? {
-              ...i,
-              status: "Resolved",
-              resolvedBy: currentUser.name
-            }
-          : i
-      )
-    );
-    showToastMsg("Issue marked resolved");
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/issues/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "Resolved",
+          resolvedBy: currentUser.name
+        })
+      });
+      if (!response.ok) throw new Error();
+      const updated = await response.json();
+      setIssueLogs(
+        issueLogs.map((i) => (i.id === id ? updated : i))
+      );
+      showToastMsg("Issue marked resolved");
+    } catch (err) {
+      showToastMsg("Failed to resolve issue on server");
+    }
   };
 
-  const handleMaintenanceSubmit = (e: React.FormEvent) => {
+  const handleMaintenanceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSvcMsg({ text: "", type: "" });
     if (!currentUser) {
@@ -143,31 +160,44 @@ export default function MaintenancePage() {
       notes: svNotes.trim()
     };
 
-    setMaintLogs([...maintLogs, newMaint]);
-    setCars(
-      cars.map((car) =>
-        car.id === svCar
-          ? {
-              ...car,
-              odo: odoNum > car.odo ? odoNum : car.odo
-            }
-          : car
-      )
-    );
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/maintenance`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newMaint)
+      });
+      if (!response.ok) {
+        throw new Error("Failed to save maintenance record on server.");
+      }
+      const savedMaint = await response.json();
+      setMaintLogs([...maintLogs, savedMaint]);
+      setCars(
+        cars.map((car) =>
+          car.id === svCar
+            ? {
+                ...car,
+                odo: odoNum > car.odo ? odoNum : car.odo
+              }
+            : car
+        )
+      );
 
-    setSvcMsg({
-      text:
-        svType === "Routine servicing"
-          ? `Saved. ${c.plate}'s next routine service is due at ${fmtN(odoNum + SERVICE_INTERVAL)} km.`
-          : `Saved. ${svType} recorded for ${c.plate}.`,
-      type: "ok"
-    });
+      setSvcMsg({
+        text:
+          svType === "Routine servicing"
+            ? `Saved. ${c.plate}'s next routine service is due at ${fmtN(odoNum + SERVICE_INTERVAL)} km.`
+            : `Saved. ${svType} recorded for ${c.plate}.`,
+        type: "ok"
+      });
 
-    setSvOdo("");
-    setSvCost("");
-    setSvWorkshop("");
-    setSvNotes("");
-    showToastMsg("Maintenance record saved");
+      setSvOdo("");
+      setSvCost("");
+      setSvWorkshop("");
+      setSvNotes("");
+      showToastMsg("Maintenance record saved");
+    } catch (err: any) {
+      setSvcMsg({ text: err.message || "Failed to save maintenance record.", type: "err" });
+    }
   };
 
   return (

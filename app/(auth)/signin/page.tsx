@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { STAFF } from "../../(dashboard)/layout";
+import { API_BASE_URL } from "../../config";
 import { motion, AnimatePresence } from "framer-motion";
 import { IconLock, IconUser, IconBuildingStore, IconBuildingSkyscraper, IconArrowRight, IconEye, IconEyeOff } from "@tabler/icons-react";
 import Dropdown from "../../components/Dropdown";
@@ -32,7 +33,7 @@ export default function SignInPage() {
     if (!matched) return;
 
     try {
-      const response = await fetch("http://localhost:3001/api/auth/login", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

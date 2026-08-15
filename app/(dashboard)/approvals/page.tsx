@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useFleet, DRIVER_NAMES } from "../layout";
+import { API_BASE_URL } from "../../config";
 
 const DAY_START = 8;
 const DAY_END = 22;
@@ -33,7 +34,7 @@ export default function ApprovalsPage() {
   const handleApprove = async (id: number) => {
     if (!currentUser) return;
     try {
-      const response = await fetch(`http://localhost:3001/api/bookings/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -54,7 +55,7 @@ export default function ApprovalsPage() {
   const handleDecline = async (id: number) => {
     if (!currentUser) return;
     try {
-      const response = await fetch(`http://localhost:3001/api/bookings/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -121,7 +122,7 @@ export default function ApprovalsPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:3001/api/bookings/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updatedFields)
