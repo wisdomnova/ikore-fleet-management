@@ -169,15 +169,23 @@ export default function LocationsPage() {
                 </div>
                 <div>
                   <label style={{ display: "block", fontSize: "0.78rem", color: "#4B5563", marginBottom: "6px" }}>
-                    Driver check-in - update fuel percentage: <strong style={{ color: c.fuel < 25 ? "var(--red)" : "inherit" }}>{c.fuel}%</strong>
+                    Driver check-in - update fuel percentage (%)
                   </label>
                   <input
-                    type="range"
+                    type="number"
                     min="0"
                     max="100"
                     value={c.fuel}
-                    onChange={(e) => handleCheckIn(c.id, c.loc, Number(e.target.value))}
-                    style={{ width: "100%", accentColor: c.fuel < 25 ? "var(--red)" : "var(--tt)" }}
+                    onChange={(e) => handleCheckIn(c.id, c.loc, Math.min(100, Math.max(0, Number(e.target.value))))}
+                    style={{ 
+                      width: "100%", 
+                      border: "1.5px solid #E5E7EB", 
+                      borderRadius: "10px", 
+                      padding: "10px 12px", 
+                      fontSize: "0.85rem", 
+                      color: "#111827", 
+                      outline: "none" 
+                    }}
                   />
                 </div>
               </div>

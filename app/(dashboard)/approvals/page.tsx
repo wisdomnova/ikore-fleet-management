@@ -149,9 +149,10 @@ export default function ApprovalsPage() {
 
   return (
     <section className="active">
-      <div className="panel" style={{ maxWidth: "760px", marginBottom: "20px" }}>
-        <h2>Approvals</h2>
-        <p className="desc" id="apprDesc">
+      {/* Header Panel */}
+      <div style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", borderRadius: "12px", padding: "28px", marginBottom: "32px" }}>
+        <h2 style={{ fontSize: "1.1rem", fontWeight: 400, color: "#111827", marginBottom: "10px" }}>Approvals</h2>
+        <p style={{ fontSize: "0.82rem", color: "#6B7280", lineHeight: 1.5, margin: 0 }}>
           {isAdminUser
             ? "As fleet manager you can see and decide every pending request across both companies, and you can adjust any trip - change the vehicle, driver, or timing, or move it to a car hire service or Bolt."
             : "Booking requests routed to you as an approver. Pending requests hold their slot on the fleet board (shown dashed) so the time cannot be double-booked while a decision is made."}
