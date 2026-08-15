@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { API_BASE_URL } from "../config";
 import {
   IconLayoutBoard,
   IconCar,
@@ -302,9 +303,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const fetchInitialData = async () => {
       try {
-        const [carsRes, bookingsRes] = await Promise.all([
-          fetch("http://localhost:3001/api/vehicles"),
-          fetch("http://localhost:3001/api/bookings")
+        const [carsRes, bookingsRes, fuelRes, maintRes, issuesRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/api/vehicles`),
+          fetch(`${API_BASE_URL}/api/bookings`),
+          fetch(`${API_BASE_URL}/api/fuel`),
+          fetch(`${API_BASE_URL}/api/maintenance`),
+          fetch(`${API_BASE_URL}/api/issues`)
         ]);
         if (carsRes.ok) {
           const carsData = await carsRes.json();
@@ -318,41 +322,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         } else {
           setBookings([]);
         }
+        if (fuelRes.ok) {
+          const fuelData = await fuelRes.json();
+          setFuelLogs(fuelData);
+        } else {
+          setFuelLogs([]);
+        }
+        if (maintRes.ok) {
+          const maintData = await maintRes.json();
+          setMaintLogs(maintData);
+        } else {
+          setMaintLogs([]);
+        }
+        if (issuesRes.ok) {
+          const issuesData = await issuesRes.json();
+          setIssueLogs(issuesData);
+        } else {
+          setIssueLogs([]);
+        }
       } catch (err) {
         console.error("Failed to fetch initial data", err);
         setCars(initialCars);
         setBookings([]);
+        setFuelLogs([]);
+        setMaintLogs([]);
+        setIssueLogs([]);
       }
     };
     fetchInitialData();
-
-    const storedFuel = localStorage.getItem("fleet_fuelLogs");
-    const storedMaint = localStorage.getItem("fleet_maintLogs");
-    const storedIssues = localStorage.getItem("fleet_issueLogs");
-
-    if (storedFuel) setFuelLogs(JSON.parse(storedFuel));
-    else setFuelLogs([
-      { carId: 3, when: "Today 07:55", driver: "Peter Agbo", litres: 45, cost: 42750, level: 90, odo: 48122, station: "NNPC, Airport Road" },
-      { carId: 5, when: "Yesterday 17:40", driver: "Louis Ogbuneke", litres: 38, cost: 36100, level: 66, odo: 52630, station: "TotalEnergies, Wuse II" }
-    ]);
-
-    if (storedMaint) setMaintLogs(JSON.parse(storedMaint));
-    else setMaintLogs([
-      { carId: 1, date: "2026-07-02", type: "Routine servicing", odo: 21000, cost: 78000, workshop: "Fleet workshop, Idu", notes: "Full routine service" },
-      { carId: 2, date: "2026-05-18", type: "Routine servicing", odo: 55500, cost: 80000, workshop: "Fleet workshop, Idu", notes: "Oil and filters" },
-      { carId: 2, date: "2026-06-10", type: "Brake pads change", odo: 57100, cost: 64000, workshop: "Fleet workshop, Idu", notes: "Front pads replaced" },
-      { carId: 3, date: "2026-07-20", type: "Routine servicing", odo: 46800, cost: 76500, workshop: "Fleet workshop, Idu", notes: "Routine + coolant top-up" },
-      { carId: 4, date: "2026-04-28", type: "Tyre replacement", odo: 68000, cost: 210000, workshop: "Tyre Centre, Wuse", notes: "Four new tyres" },
-      { carId: 4, date: "2026-04-29", type: "Wheel alignment & balancing", odo: 68010, cost: 18000, workshop: "Tyre Centre, Wuse", notes: "After tyre change" },
-      { carId: 5, date: "2026-06-22", type: "Air conditioning", odo: 50900, cost: 55000, workshop: "AC Specialist, Garki", notes: "Regas and compressor check" },
-      { carId: 5, date: "2026-07-25", type: "Routine servicing", odo: 51800, cost: 72000, workshop: "Fleet workshop, Idu", notes: "Routine service" }
-    ]);
-
-    if (storedIssues) setIssueLogs(JSON.parse(storedIssues));
-    else setIssueLogs([
-      { id: 1, carId: 3, date: "2026-08-04", driver: "Peter Agbo", severity: "Medium", desc: "AC cooling is weak on long trips", status: "Open" },
-      { id: 2, carId: 1, date: "2026-07-28", driver: "Ameh Friday", severity: "Low", desc: "Small windscreen chip, passenger side", status: "Resolved", resolvedBy: "Godsfavour Nyoyoko" }
-    ]);
 
     setIsLoaded(true);
   }, [router]);

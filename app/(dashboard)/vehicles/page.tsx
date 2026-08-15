@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useFleet } from "../layout";
+import { API_BASE_URL } from "../../config";
 
 export default function VehiclesPage() {
   const {
@@ -25,40 +26,57 @@ export default function VehiclesPage() {
 
   const isAdminUser = currentUser?.name === "Godsfavour Nyoyoko";
 
-  const handleCarSave = (id: number) => {
+  const handleCarSave = async (id: number) => {
     const fields = editFields[id];
     if (!fields) return;
     if (!fields.name.trim()) {
       showToastMsg("Vehicle name cannot be empty");
       return;
     }
-    setCars(
-      cars.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              name: fields.name.trim(),
-              plate: fields.plate.trim() || "TBD",
-              co: fields.co,
-              odo: fields.odo,
-              papers: fields.papers.trim() || undefined,
-              shop: fields.shop
-            }
-          : c
-      )
-    );
-    showToastMsg(`${fields.name} updated`);
+    const updateBody = {
+      name: fields.name.trim(),
+      plate: fields.plate.trim() || "TBD",
+      company: fields.co,
+      odo: fields.odo,
+      papers: fields.papers.trim() || null,
+      shop: fields.shop
+    };
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/vehicles/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updateBody)
+      });
+      if (!response.ok) throw new Error();
+      const updatedCar = await response.json();
+      setCars(cars.map((c) => (c.id === id ? updatedCar : c)));
+      showToastMsg(`${fields.name} updated`);
+    } catch (err) {
+      showToastMsg(`Failed to save changes for ${fields.name}`);
+    }
   };
 
-  const handleCarRemove = (id: number) => {
+  const handleCarRemove = async (id: number) => {
     const c = cars.find((car) => car.id === id);
     if (!c) return;
     if (!confirm(`Remove ${c.name} (${c.plate}) from the fleet?`)) return;
-    setCars(cars.filter((car) => car.id !== id));
-    showToastMsg(`${c.name} removed from the fleet`);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/vehicles/${id}`, {
+        method: "DELETE"
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Failed to remove vehicle");
+      }
+      setCars(cars.filter((car) => car.id !== id));
+      showToastMsg(`${c.name} removed from the fleet`);
+    } catch (err: any) {
+      showToastMsg(err.message || "Failed to remove vehicle on server");
+    }
   };
 
-  const handleCarAdd = (e: React.FormEvent) => {
+  const handleCarAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setVehAddMsg({ text: "", type: "" });
     if (!currentUser || !isAdminUser) {
@@ -74,27 +92,36 @@ export default function VehiclesPage() {
     const odoVal = Number(nvOdo) || 0;
 
     const newCar = {
-      id: nextCarId,
       plate: plateVal,
       name: nvName.trim(),
-      co: nvCo,
+      company: nvCo,
       fuel: 50,
       odo: odoVal,
       loc: "Head office, Utako",
       locT: "Just added",
       shop: false,
-      papers: nvPapers.trim() || undefined
+      papers: nvPapers.trim() || null
     };
 
-    setCars([...cars, newCar]);
-    setNextCarId(nextCarId + 1);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/vehicles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newCar)
+      });
+      if (!response.ok) throw new Error("Failed to add vehicle to server.");
+      const savedCar = await response.json();
+      setCars([...cars, savedCar]);
 
-    setVehAddMsg({ text: `${nvName} added to the fleet.`, type: "ok" });
-    setNvName("");
-    setNvPlate("");
-    setNvOdo("");
-    setNvPapers("");
-    showToastMsg(`${nvName} added`);
+      setVehAddMsg({ text: `${nvName} added to the fleet.`, type: "ok" });
+      setNvName("");
+      setNvPlate("");
+      setNvOdo("");
+      setNvPapers("");
+      showToastMsg(`${nvName} added`);
+    } catch (err: any) {
+      setVehAddMsg({ text: err.message || "Failed to add vehicle.", type: "err" });
+    }
   };
 
   const getFields = (c: any) => {

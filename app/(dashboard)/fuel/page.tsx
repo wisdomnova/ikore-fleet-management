@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useFleet, DRIVER_NAMES } from "../layout";
+import { API_BASE_URL } from "../../config";
 
 export default function FuelLogPage() {
   const {
@@ -29,7 +30,7 @@ export default function FuelLogPage() {
     return Number(n).toLocaleString("en-NG");
   };
 
-  const handleFuelSubmit = (e: React.FormEvent) => {
+  const handleFuelSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFuelMsg({ text: "", type: "" });
     if (!currentUser) {
@@ -71,26 +72,42 @@ export default function FuelLogPage() {
       station
     };
 
-    setFuelLogs([...fuelLogs, newLog]);
-    setCars(
-      cars.map((car) =>
-        car.id === flCar
-          ? {
-              ...car,
-              fuel: flLevel,
-              odo: odo || car.odo
-            }
-          : car
-      )
-    );
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/fuel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newLog)
+      });
 
-    setFuelMsg({ text: `Saved. ${c.plate} now shows ${flLevel}% fuel.`, type: "ok" });
-    setFlLitres("");
-    setFlCost("");
-    setFlOdo("");
-    setFlStation("");
-    showToastMsg("Fuel entry saved");
+      if (!response.ok) {
+        throw new Error("Failed to save fuel entry on server.");
+      }
+
+      const savedLog = await response.json();
+      setFuelLogs([...fuelLogs, savedLog]);
+      setCars(
+        cars.map((car) =>
+          car.id === flCar
+            ? {
+                ...car,
+                fuel: flLevel,
+                odo: odo || car.odo
+              }
+            : car
+        )
+      );
+
+      setFuelMsg({ text: `Saved. ${c.plate} now shows ${flLevel}% fuel.`, type: "ok" });
+      setFlLitres("");
+      setFlCost("");
+      setFlOdo("");
+      setFlStation("");
+      showToastMsg("Fuel entry saved");
+    } catch (err: any) {
+      setFuelMsg({ text: err.message || "Failed to save fuel entry.", type: "err" });
+    }
   };
+
 
   return (
     <section className="active">
