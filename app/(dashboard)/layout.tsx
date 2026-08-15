@@ -301,6 +301,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       router.push("/signin");
     }
 
+    // Instantly load cached data to avoid empty screens
+    try {
+      const storedCars = localStorage.getItem("fleet_cars");
+      if (storedCars) setCars(JSON.parse(storedCars));
+      else setCars(initialCars);
+
+      const storedBookings = localStorage.getItem("fleet_bookings");
+      if (storedBookings) setBookings(JSON.parse(storedBookings));
+
+      const storedFuel = localStorage.getItem("fleet_fuelLogs");
+      if (storedFuel) setFuelLogs(JSON.parse(storedFuel));
+
+      const storedMaint = localStorage.getItem("fleet_maintLogs");
+      if (storedMaint) setMaintLogs(JSON.parse(storedMaint));
+
+      const storedIssues = localStorage.getItem("fleet_issueLogs");
+      if (storedIssues) setIssueLogs(JSON.parse(storedIssues));
+    } catch (cacheErr) {
+      console.error("Error reading initial cache", cacheErr);
+      setCars(initialCars);
+    }
+
     const fetchInitialData = async () => {
       try {
         const [carsRes, bookingsRes, fuelRes, maintRes, issuesRes] = await Promise.all([
@@ -313,40 +335,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (carsRes.ok) {
           const carsData = await carsRes.json();
           setCars(carsData);
-        } else {
-          setCars(initialCars);
         }
         if (bookingsRes.ok) {
           const bookingsData = await bookingsRes.json();
           setBookings(bookingsData);
-        } else {
-          setBookings([]);
         }
         if (fuelRes.ok) {
           const fuelData = await fuelRes.json();
           setFuelLogs(fuelData);
-        } else {
-          setFuelLogs([]);
         }
         if (maintRes.ok) {
           const maintData = await maintRes.json();
           setMaintLogs(maintData);
-        } else {
-          setMaintLogs([]);
         }
         if (issuesRes.ok) {
           const issuesData = await issuesRes.json();
           setIssueLogs(issuesData);
-        } else {
-          setIssueLogs([]);
         }
       } catch (err) {
         console.error("Failed to fetch initial data", err);
-        setCars(initialCars);
-        setBookings([]);
-        setFuelLogs([]);
-        setMaintLogs([]);
-        setIssueLogs([]);
       }
     };
     fetchInitialData();
