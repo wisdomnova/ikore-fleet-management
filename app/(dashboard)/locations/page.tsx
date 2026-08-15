@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useFleet } from "../layout";
+import { API_BASE_URL } from "../../config";
 import Dropdown from "../../components/Dropdown";
 
 const ABUJA_SPOTS = [
@@ -31,20 +32,36 @@ export default function LocationsPage() {
 
   const isOfficeTrip = (b: any) => !b.mode || b.mode === "Office car";
 
-  const handleLocChange = (carId: number, loc: string) => {
+  const handleCheckIn = async (carId: number, loc: string, fuel: number) => {
+    const locT = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    
+    // Optimistic update
     setCars(
       cars.map((c) =>
         c.id === carId
           ? {
               ...c,
               loc,
-              locT: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+              locT,
+              fuel
             }
           : c
       )
     );
-    const targetCar = cars.find((c) => c.id === carId);
-    showToastMsg(`${targetCar?.plate || "Vehicle"} location updated`);
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/vehicles/${carId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loc, locT, fuel })
+      });
+      if (!response.ok) throw new Error();
+      const updatedCar = await response.json();
+      setCars(cars.map((c) => (c.id === carId ? updatedCar : c)));
+      showToastMsg(`Check-in saved for ${updatedCar.plate}`);
+    } catch (err) {
+      showToastMsg("Failed to save check-in on server");
+    }
   };
 
   const getCarStatus = (c: any) => {
@@ -138,16 +155,31 @@ export default function LocationsPage() {
                 </div>
               </div>
 
-              <div>
-                <label style={{ display: "block", fontSize: "0.78rem", color: "#4B5563", marginBottom: "6px" }}>
-                  Driver check-in - update location
-                </label>
-                <Dropdown
-                  options={locationOptions}
-                  value={c.loc}
-                  onChange={(val) => handleLocChange(c.id, val)}
-                  placeholder="Select location..."
-                />
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", color: "#4B5563", marginBottom: "6px" }}>
+                    Driver check-in - update location
+                  </label>
+                  <Dropdown
+                    options={locationOptions}
+                    value={c.loc}
+                    onChange={(val) => handleCheckIn(c.id, val, c.fuel)}
+                    placeholder="Select location..."
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", color: "#4B5563", marginBottom: "6px" }}>
+                    Driver check-in - update fuel percentage: <strong style={{ color: c.fuel < 25 ? "var(--red)" : "inherit" }}>{c.fuel}%</strong>
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={c.fuel}
+                    onChange={(e) => handleCheckIn(c.id, c.loc, Number(e.target.value))}
+                    style={{ width: "100%", accentColor: c.fuel < 25 ? "var(--red)" : "var(--tt)" }}
+                  />
+                </div>
               </div>
             </div>
           );
