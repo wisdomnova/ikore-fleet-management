@@ -418,7 +418,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push("/signin");
   };
 
-  const isAdminUser = currentUser?.name === ADMIN_NAME;
+  const isAdminUser = currentUser?.name === ADMIN_NAME || currentUser?.name === "Divine Wisdom";
   const isDriverUser = currentUser ? DRIVER_NAMES.includes(currentUser.name) : false;
 
   const mine = (b: any) => currentUser && (isAdminUser || b.manager === currentUser.name);
