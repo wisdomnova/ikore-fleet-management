@@ -30,7 +30,38 @@ export default function BookCarPage() {
   const [bkDest, setBkDest] = useState("");
   const [bkDriver, setBkDriver] = useState("Assign any available driver");
   const [bkPurpose, setBkPurpose] = useState("");
+  const [bkPassengers, setBkPassengers] = useState(1);
   const [bookMsg, setBookMsg] = useState({ text: "", type: "" });
+
+  const getCarCapacity = (name: string): number => {
+    const lower = name.toLowerCase();
+    if (lower.includes("hiace") || lower.includes("bus")) return 15;
+    if (lower.includes("sienna") || lower.includes("highlander")) return 7;
+    return 5;
+  };
+
+  const getRecommendation = () => {
+    if (bkPassengers > 7) {
+      return {
+        text: "Toyota Hiace Bus (15 seats) is recommended for larger groups.",
+        carName: "Toyota Hiace Bus"
+      };
+    } else if (bkPassengers > 5) {
+      return {
+        text: "Toyota Sienna or Toyota Highlander (7 seats) is recommended.",
+        carName: "Sienna / Highlander"
+      };
+    } else {
+      return {
+        text: "Any vehicle (JAC T9, Toyota Sienna, or Toyota Highlander) is suitable.",
+        carName: "Any"
+      };
+    }
+  };
+
+  const selectedCar = cars.find((c) => c.id === bkCar);
+  const selectedCarCapacity = selectedCar ? getCarCapacity(selectedCar.name) : 5;
+  const isOverCapacity = bkPassengers > selectedCarCapacity;
 
   const isDriverUser = currentUser ? ["Peter Agbo", "Ameh Friday", "Louis Ogbuneke"].includes(currentUser.name) : false;
   const isAdminUser = currentUser?.name === "Godsfavour Nyoyoko";
@@ -107,7 +138,7 @@ export default function BookCarPage() {
       co: currentUser.co,
       dest: bkDest.trim() || "None",
       driver: bkDriver,
-      purpose: bkPurpose.trim(),
+      purpose: bkPurpose.trim() + (bkPassengers > 1 ? ` (${bkPassengers} persons)` : " (1 person)"),
       manager: bkManager
     };
 
@@ -133,6 +164,7 @@ export default function BookCarPage() {
       });
       setBkDest("");
       setBkPurpose("");
+      setBkPassengers(1);
       showToastMsg("Request sent for approval");
     } catch (err) {
       setBookMsg({ text: "Failed to send request to the server.", type: "err" });
@@ -233,8 +265,8 @@ export default function BookCarPage() {
               </div>
             </div>
 
-            {/* Form Row 2 */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+            {/* Form Row 2: Vehicle & Persons */}
+            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "20px" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.8rem", color: "#4B5563", marginBottom: "6px" }}>
                   Vehicle
@@ -246,6 +278,67 @@ export default function BookCarPage() {
                   placeholder="Select vehicle..."
                 />
               </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.8rem", color: "#4B5563", marginBottom: "6px" }}>
+                  Number of persons going
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="15"
+                  value={bkPassengers}
+                  onChange={(e) => setBkPassengers(Math.max(1, Number(e.target.value)))}
+                  style={{
+                    width: "100%",
+                    padding: "11px 14px",
+                    fontSize: "0.88rem",
+                    border: "1.5px solid #E5E7EB",
+                    borderRadius: "10px",
+                    background: "#FFFFFF",
+                    color: "#111827",
+                    outline: "none"
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Recommendation & Warning Alerts */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <div style={{ 
+                fontSize: "0.8rem", 
+                padding: "10px 14px", 
+                borderRadius: "8px", 
+                background: "#F0F9FF", 
+                border: "1px solid #BAE6FD", 
+                color: "#0369A1",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px"
+              }}>
+                <span style={{ fontSize: "1.1rem" }}>💡</span>
+                <span><strong>Recommendation:</strong> {getRecommendation().text}</span>
+              </div>
+
+              {isOverCapacity && (
+                <div style={{ 
+                  fontSize: "0.8rem", 
+                  padding: "10px 14px", 
+                  borderRadius: "8px", 
+                  background: "#FFFBEB", 
+                  border: "1px solid #FDE68A", 
+                  color: "#B45309",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px"
+                }}>
+                  <span style={{ fontSize: "1.1rem" }}>⚠️</span>
+                  <span><strong>Warning:</strong> Selected vehicle ({selectedCar?.name}) may be too small for {bkPassengers} passengers (Capacity: {selectedCarCapacity} seats).</span>
+                </div>
+              )}
+            </div>
+
+            {/* Form Row 3: Date & Times */}
+            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: "20px" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.8rem", color: "#4B5563", marginBottom: "6px" }}>
                   Date
@@ -267,10 +360,6 @@ export default function BookCarPage() {
                   }}
                 />
               </div>
-            </div>
-
-            {/* Form Row 3 */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.8rem", color: "#4B5563", marginBottom: "6px" }}>
                   Start time
