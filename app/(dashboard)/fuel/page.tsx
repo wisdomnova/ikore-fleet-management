@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useFleet, DRIVER_NAMES } from "../layout";
 import { API_BASE_URL } from "../../config";
+import Dropdown from "../../components/Dropdown";
 
 export default function FuelLogPage() {
   const {
@@ -25,6 +26,18 @@ export default function FuelLogPage() {
 
   const isAdminUser = currentUser?.name === "Godsfavour Nyoyoko";
   const isDriverUser = currentUser ? DRIVER_NAMES.includes(currentUser.name) : false;
+
+  const carOptions = cars.map((c) => ({
+    value: c.id,
+    label: `${c.plate !== "TBD" ? c.plate + " - " : ""}${c.name} (${c.co === "Tractrac" ? "TracTrac" : "Ikore"})`
+  }));
+
+  const driverOptions = [
+    { value: "Peter Agbo", label: "Peter Agbo" },
+    { value: "Ameh Friday", label: "Ameh Friday" },
+    { value: "Louis Ogbuneke", label: "Louis Ogbuneke" },
+    { value: "Other / self-drive staff", label: "Other / self-drive staff" }
+  ];
 
   const fmtN = (n: number | string): string => {
     return Number(n).toLocaleString("en-NG");
@@ -132,32 +145,21 @@ export default function FuelLogPage() {
           <div className="frow">
             <div>
               <label htmlFor="flCar">Vehicle</label>
-              <select
-                id="flCar"
+              <Dropdown
+                options={carOptions}
                 value={flCar}
-                onChange={(e) => setFlCar(Number(e.target.value))}
-              >
-                {cars.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.plate !== "TBD" ? c.plate + " - " : ""}
-                    {c.name} ({c.co === "Tractrac" ? "TracTrac" : "Ikore"})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setFlCar(Number(val))}
+                placeholder="Select vehicle…"
+              />
             </div>
             <div>
               <label htmlFor="flDriver">Driver</label>
-              <select
-                id="flDriver"
+              <Dropdown
+                options={driverOptions}
                 value={flDriver}
-                onChange={(e) => setFlDriver(e.target.value)}
-              >
-                <option value="">Select driver…</option>
-                <option value="Peter Agbo">Peter Agbo</option>
-                <option value="Ameh Friday">Ameh Friday</option>
-                <option value="Louis Ogbuneke">Louis Ogbuneke</option>
-                <option value="Other / self-drive staff">Other / self-drive staff</option>
-              </select>
+                onChange={(val) => setFlDriver(val)}
+                placeholder="Select driver…"
+              />
             </div>
           </div>
           <div className="frow">
