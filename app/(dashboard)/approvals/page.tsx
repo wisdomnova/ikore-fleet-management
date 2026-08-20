@@ -150,7 +150,7 @@ export default function ApprovalsPage() {
     }
   };
 
-  const isAdminUser = currentUser?.name === ADMIN_NAME;
+  const isAdminUser = currentUser?.name === ADMIN_NAME || currentUser?.name === "Divine Wisdom";
   const mine = (b: any) => currentUser && (isAdminUser || b.manager === currentUser.name);
   const pending = bookings.filter((b) => b.status === "pending").filter(mine);
   const decided = bookings.filter((b) => b.status !== "pending" && b.decidedAt && mine(b)).slice(-6).reverse();
