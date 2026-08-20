@@ -23,6 +23,7 @@ export default function FuelLogPage() {
   const [flOdo, setFlOdo] = useState("");
   const [flStation, setFlStation] = useState("");
   const [fuelMsg, setFuelMsg] = useState({ text: "", type: "" });
+  const [isFuelPending, setIsFuelPending] = useState(false);
 
   const isAdminUser = currentUser?.name === "Godsfavour Nyoyoko";
   const isDriverUser = currentUser ? DRIVER_NAMES.includes(currentUser.name) : false;
@@ -91,6 +92,7 @@ export default function FuelLogPage() {
       station
     };
 
+    setIsFuelPending(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/fuel`, {
         method: "POST",
@@ -124,6 +126,8 @@ export default function FuelLogPage() {
       showToastMsg("Fuel entry saved");
     } catch (err: any) {
       setFuelMsg({ text: err.message || "Failed to save fuel entry.", type: "err" });
+    } finally {
+      setIsFuelPending(false);
     }
   };
 
@@ -234,8 +238,8 @@ export default function FuelLogPage() {
               />
             </div>
           </div>
-          <button type="submit" className="btn" id="flSubmit">
-            Save fuel entry
+          <button type="submit" className="btn" id="flSubmit" disabled={isFuelPending}>
+            {isFuelPending ? "Saving..." : "Save fuel entry"}
           </button>
         </form>
       </div>

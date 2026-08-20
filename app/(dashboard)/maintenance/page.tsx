@@ -49,6 +49,8 @@ export default function MaintenancePage() {
   const [svcMsg, setSvcMsg] = useState({ text: "", type: "" });
 
   const [svcFilter, setSvcFilter] = useState("all");
+  const [isIssuePending, setIsIssuePending] = useState(false);
+  const [isSvcPending, setIsSvcPending] = useState(false);
 
   const isAdminUser = currentUser?.name === "Godsfavour Nyoyoko";
   const isDriverUser = currentUser ? ["Peter Agbo", "Ameh Friday", "Louis Ogbuneke"].includes(currentUser.name) : false;
@@ -100,6 +102,7 @@ export default function MaintenancePage() {
       desc: isDesc.trim()
     };
 
+    setIsIssuePending(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/issues`, {
         method: "POST",
@@ -120,6 +123,8 @@ export default function MaintenancePage() {
       showToastMsg("Issue logged");
     } catch (err: any) {
       setIssueMsg({ text: err.message || "Failed to log issue.", type: "err" });
+    } finally {
+      setIsIssuePending(false);
     }
   };
 
@@ -177,6 +182,7 @@ export default function MaintenancePage() {
       notes: svNotes.trim()
     };
 
+    setIsSvcPending(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/maintenance`, {
         method: "POST",
@@ -214,6 +220,8 @@ export default function MaintenancePage() {
       showToastMsg("Maintenance record saved");
     } catch (err: any) {
       setSvcMsg({ text: err.message || "Failed to save maintenance record.", type: "err" });
+    } finally {
+      setIsSvcPending(false);
     }
   };
 
@@ -338,8 +346,8 @@ export default function MaintenancePage() {
               />
             </div>
           </div>
-          <button type="submit" className="btn" id="isSubmit">
-            Log issue
+          <button type="submit" className="btn" id="isSubmit" disabled={isIssuePending}>
+            {isIssuePending ? "Logging..." : "Log issue"}
           </button>
         </form>
       </div>
@@ -499,8 +507,8 @@ export default function MaintenancePage() {
               />
             </div>
           </div>
-          <button type="submit" className="btn" id="svSubmit">
-            Save maintenance record
+          <button type="submit" className="btn" id="svSubmit" disabled={isSvcPending}>
+            {isSvcPending ? "Saving..." : "Save maintenance record"}
           </button>
         </form>
       </div>

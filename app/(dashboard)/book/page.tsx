@@ -42,6 +42,7 @@ export default function BookCarPage() {
   const [bkPurpose, setBkPurpose] = useState("");
   const [bkPassengers, setBkPassengers] = useState(1);
   const [bookMsg, setBookMsg] = useState({ text: "", type: "" });
+  const [isBookPending, setIsBookPending] = useState(false);
 
   const getCarCapacity = (name: string): number => {
     const lower = name.toLowerCase();
@@ -152,6 +153,7 @@ export default function BookCarPage() {
       manager: bkManager
     };
 
+    setIsBookPending(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/bookings`, {
         method: "POST",
@@ -178,6 +180,8 @@ export default function BookCarPage() {
       showToastMsg("Request sent for approval");
     } catch (err) {
       setBookMsg({ text: "Failed to send request to the server.", type: "err" });
+    } finally {
+      setIsBookPending(false);
     }
   };
 
@@ -497,22 +501,23 @@ export default function BookCarPage() {
 
             <button
               type="submit"
+              disabled={isBookPending}
               style={{
                 width: "100%",
                 padding: "14px",
                 fontSize: "0.9rem",
                 fontWeight: 500,
                 color: "#FFFFFF",
-                background: "#1F2937",
+                background: isBookPending ? "#9CA3AF" : "#1F2937",
                 border: "none",
                 borderRadius: "10px",
-                cursor: "pointer",
+                cursor: isBookPending ? "not-allowed" : "pointer",
                 transition: "background 0.2s ease"
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = "#374151"}
-              onMouseLeave={(e) => e.currentTarget.style.background = "#1F2937"}
+              onMouseEnter={(e) => !isBookPending && (e.currentTarget.style.background = "#374151")}
+              onMouseLeave={(e) => !isBookPending && (e.currentTarget.style.background = "#1F2937")}
             >
-              Send request for approval
+              {isBookPending ? "Sending request..." : "Send request for approval"}
             </button>
           </form>
         </div>

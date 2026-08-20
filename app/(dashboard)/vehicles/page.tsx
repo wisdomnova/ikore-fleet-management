@@ -21,6 +21,7 @@ export default function VehiclesPage() {
   const [nvOdo, setNvOdo] = useState("");
   const [nvPapers, setNvPapers] = useState("");
   const [vehAddMsg, setVehAddMsg] = useState({ text: "", type: "" });
+  const [isAddPending, setIsAddPending] = useState(false);
 
   const [editFields, setEditFields] = useState<Record<number, { name: string; plate: string; co: "Tractrac" | "Ikore"; odo: number; papers: string; shop: boolean }>>({});
 
@@ -103,6 +104,7 @@ export default function VehiclesPage() {
       papers: nvPapers.trim() || null
     };
 
+    setIsAddPending(true);
     try {
       const response = await fetch(`${API_BASE_URL}/api/vehicles`, {
         method: "POST",
@@ -121,6 +123,8 @@ export default function VehiclesPage() {
       showToastMsg(`${nvName} added`);
     } catch (err: any) {
       setVehAddMsg({ text: err.message || "Failed to add vehicle.", type: "err" });
+    } finally {
+      setIsAddPending(false);
     }
   };
 
@@ -336,8 +340,8 @@ export default function VehiclesPage() {
                 />
               </div>
             </div>
-            <button type="submit" className="btn" id="nvAdd">
-              Add vehicle
+            <button type="submit" className="btn" id="nvAdd" disabled={isAddPending}>
+              {isAddPending ? "Adding..." : "Add vehicle"}
             </button>
           </form>
         </div>
