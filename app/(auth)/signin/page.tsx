@@ -20,6 +20,14 @@ export default function SignInPage() {
   const [isPending, setIsPending] = useState(false);
   const [btnHover, setBtnHover] = useState(false);
 
+  // Password reset modal states
+  const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
+  const [resetPw, setResetPw] = useState("");
+  const [confirmResetPw, setConfirmResetPw] = useState("");
+  const [resetPwMsg, setResetPwMsg] = useState({ text: "", type: "" });
+  const [isResetPending, setIsResetPending] = useState(false);
+  const [authenticatedUserObj, setAuthenticatedUserObj] = useState<any>(null);
+
   const handleSignIn = async () => {
     setLoginMsg({ text: "", type: "" });
     if (!pickedCo) {
@@ -55,11 +63,62 @@ export default function SignInPage() {
         return;
       }
 
-      localStorage.setItem("fleet_currentUser", JSON.stringify(data.user));
-      router.push("/");
+      if (loginPw === DEFAULT_PW) {
+        setAuthenticatedUserObj(data.user);
+        setIsPending(false);
+        setShowPasswordResetModal(true);
+      } else {
+        localStorage.setItem("fleet_currentUser", JSON.stringify(data.user));
+        router.push("/");
+      }
     } catch (err) {
       setLoginMsg({ text: "Failed to connect to authentication server.", type: "err" });
       setIsPending(false);
+    }
+  };
+
+  const handlePasswordResetSubmit = async () => {
+    setResetPwMsg({ text: "", type: "" });
+    if (!resetPw) {
+      setResetPwMsg({ text: "Please enter a new password.", type: "err" });
+      return;
+    }
+    if (resetPw.length < 4) {
+      setResetPwMsg({ text: "Password must be at least 4 characters long.", type: "err" });
+      return;
+    }
+    if (resetPw !== confirmResetPw) {
+      setResetPwMsg({ text: "Passwords do not match.", type: "err" });
+      return;
+    }
+    if (resetPw === DEFAULT_PW) {
+      setResetPwMsg({ text: "Please choose a password other than the default password.", type: "err" });
+      return;
+    }
+    if (!authenticatedUserObj) return;
+
+    setIsResetPending(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/update-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          username: authenticatedUserObj.user,
+          password: resetPw
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to save password.");
+      }
+
+      localStorage.setItem("fleet_currentUser", JSON.stringify(authenticatedUserObj));
+      router.push("/");
+    } catch (err) {
+      setResetPwMsg({ text: "Failed to update password. Please try again.", type: "err" });
+      setIsResetPending(false);
     }
   };
 
@@ -473,10 +532,139 @@ export default function SignInPage() {
               textAlign: "center"
             }}
           >
-            Demo account password: <code style={{ background: "#F3F4F6", padding: "2px 6px", borderRadius: "4px", color: "#4B5563" }}>fleet123</code>
+            Default account password: <code style={{ background: "#F3F4F6", padding: "2px 6px", borderRadius: "4px", color: "#4B5563" }}>fleet123</code> (You will be prompted to set your custom password upon first sign-in)
           </p>
         </motion.div>
       </div>
+
+      <AnimatePresence>
+        {showPasswordResetModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+              background: "rgba(0, 0, 0, 0.4)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              style={{
+                width: "90%",
+                maxWidth: "400px",
+                background: "#FFFFFF",
+                borderRadius: "16px",
+                padding: "32px",
+                boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+                fontFamily: "'Google Sans Flex', sans-serif"
+              }}
+            >
+              <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "#111827", marginBottom: "8px" }}>
+                Set your custom password
+              </h3>
+              <p style={{ fontSize: "0.82rem", color: "#6B7280", lineHeight: 1.5, marginBottom: "20px" }}>
+                You logged in with the default password. Please choose a custom password to secure your account.
+              </p>
+
+              {resetPwMsg.text && (
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    fontSize: "0.8rem",
+                    marginBottom: "16px",
+                    background: resetPwMsg.type === "err" ? "#FEF2F2" : "#F0FDF4",
+                    border: `1px solid ${resetPwMsg.type === "err" ? "#FEE2E2" : "#BBF7D0"}`,
+                    color: resetPwMsg.type === "err" ? "#991B1B" : "#15803D"
+                  }}
+                >
+                  {resetPwMsg.text}
+                </div>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "24px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", color: "#4B5563", marginBottom: "6px" }}>
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={resetPw}
+                    onChange={(e) => setResetPw(e.target.value)}
+                    disabled={isResetPending}
+                    style={{
+                      width: "100%",
+                      padding: "11px 14px",
+                      fontSize: "0.88rem",
+                      border: "1.5px solid #E5E7EB",
+                      borderRadius: "10px",
+                      color: "#111827",
+                      background: "#FFFFFF",
+                      outline: "none"
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", color: "#4B5563", marginBottom: "6px" }}>
+                    Confirm Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmResetPw}
+                    onChange={(e) => setConfirmResetPw(e.target.value)}
+                    disabled={isResetPending}
+                    style={{
+                      width: "100%",
+                      padding: "11px 14px",
+                      fontSize: "0.88rem",
+                      border: "1.5px solid #E5E7EB",
+                      borderRadius: "10px",
+                      color: "#111827",
+                      background: "#FFFFFF",
+                      outline: "none"
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "12px" }}>
+                <button
+                  disabled={isResetPending}
+                  onClick={handlePasswordResetSubmit}
+                  style={{
+                    flex: 1,
+                    background: isResetPending ? "#6B7280" : "#111827",
+                    color: "#FFFFFF",
+                    border: "none",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    fontSize: "0.88rem",
+                    fontWeight: 500,
+                    cursor: isResetPending ? "not-allowed" : "pointer",
+                    outline: "none"
+                  }}
+                >
+                  {isResetPending ? "Saving..." : "Save Password"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
