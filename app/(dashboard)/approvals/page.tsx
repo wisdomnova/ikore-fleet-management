@@ -43,12 +43,16 @@ export default function ApprovalsPage() {
           decidedBy: currentUser.name
         })
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        console.error("Approve failed:", response.status, errBody);
+        throw new Error(errBody?.error || "Server error");
+      }
       const updated = await response.json();
       setBookings(bookings.map((b) => (b.id === id ? updated : b)));
       showToastMsg("Approved - trip confirmed");
-    } catch (err) {
-      showToastMsg("Failed to approve request");
+    } catch (err: any) {
+      showToastMsg(`Failed to approve: ${err?.message || "Unknown error"}`);
     }
   };
 
@@ -64,12 +68,16 @@ export default function ApprovalsPage() {
           decidedBy: currentUser.name
         })
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        console.error("Decline failed:", response.status, errBody);
+        throw new Error(errBody?.error || "Server error");
+      }
       const updated = await response.json();
       setBookings(bookings.map((b) => (b.id === id ? updated : b)));
       showToastMsg("Declined - slot freed");
-    } catch (err) {
-      showToastMsg("Failed to decline request");
+    } catch (err: any) {
+      showToastMsg(`Failed to decline: ${err?.message || "Unknown error"}`);
     }
   };
 
