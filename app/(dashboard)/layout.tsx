@@ -421,7 +421,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isAdminUser = currentUser?.name === ADMIN_NAME;
   const isDriverUser = currentUser ? DRIVER_NAMES.includes(currentUser.name) : false;
 
-  const pendingApprovals = bookings.filter((b) => b.status === "pending").length;
+  const mine = (b: any) => currentUser && (isAdminUser || b.manager === currentUser.name);
+  const pendingApprovals = bookings.filter((b) => b.status === "pending").filter(mine).length;
 
   return (
     <FleetContext.Provider
