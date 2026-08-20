@@ -151,6 +151,7 @@ const initialCars: Car[] = [
 ];
 
 export const STAFF: Staff[] = [
+  { "name": "Divine Wisdom", "designation": "QA Tester", "dept": "QA", "co": "Tractrac", "approver": true, "user": "wisdomdivine" },
   { "name": "Godson Ohuruogu", "designation": "MD", "dept": "Office of the CEO", "co": "Tractrac", "approver": true, "user": "godson.ohuruogu" },
   { "name": "Stephen Aguebor", "designation": "Project Lead", "dept": "Programs", "co": "Tractrac", "approver": true, "user": "stephen.aguebor" },
   { "name": "Adedolapo Olupona .E", "designation": "Human Resources Manager", "dept": "Operations", "co": "Tractrac", "approver": false, "user": "adedolapo.e" },
