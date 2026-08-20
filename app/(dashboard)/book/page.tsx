@@ -637,7 +637,9 @@ export default function BookCarPage() {
                         )}
                       </td>
                       <td style={{ padding: "16px", fontSize: "0.85rem", color: "#4B5563" }}>{b.dest}</td>
-                      <td style={{ padding: "16px", fontSize: "0.85rem", color: "#4B5563" }}>{b.manager}</td>
+                      <td style={{ padding: "16px", fontSize: "0.85rem", color: "#4B5563" }}>
+                        {b.status === "pending" ? b.manager : (b.decidedBy || b.manager)}
+                      </td>
                       <td style={{ padding: "16px" }}>
                         <span
                           style={{
