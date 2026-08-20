@@ -18,7 +18,7 @@ export default function FuelLogPage() {
   const [flDriver, setFlDriver] = useState("");
   const [flLitres, setFlLitres] = useState("");
   const [flCost, setFlCost] = useState("");
-  const [flLevel, setFlLevel] = useState(75);
+  const [flLevel, setFlLevel] = useState<number | "">(75);
   const [flOdo, setFlOdo] = useState("");
   const [flStation, setFlStation] = useState("");
   const [fuelMsg, setFuelMsg] = useState({ text: "", type: "" });
@@ -47,6 +47,12 @@ export default function FuelLogPage() {
     const odo = Number(flOdo);
     const station = flStation.trim();
 
+    const levelVal = Number(flLevel);
+    if (flLevel === "" || isNaN(levelVal) || levelVal < 0 || levelVal > 100) {
+      setFuelMsg({ text: "Please enter a valid tank level percentage between 0 and 100.", type: "err" });
+      return;
+    }
+
     if (!flDriver || !litres || !station) {
       setFuelMsg({ text: "Please select the driver and enter the litres purchased and the filling station.", type: "err" });
       return;
@@ -67,7 +73,7 @@ export default function FuelLogPage() {
       driver: flDriver,
       litres,
       cost: cost || 0,
-      level: flLevel,
+      level: levelVal,
       odo: odo || c.odo,
       station
     };
@@ -181,16 +187,25 @@ export default function FuelLogPage() {
           </div>
           <div className="frow">
             <div>
-              <label htmlFor="flLevel">
-                Tank level after filling - <span className="range-out">{flLevel}%</span>
-              </label>
+              <label htmlFor="flLevel">Tank level after filling (%)</label>
               <input
-                type="range"
+                type="number"
                 id="flLevel"
                 min="0"
                 max="100"
+                placeholder="e.g. 75"
                 value={flLevel}
-                onChange={(e) => setFlLevel(Number(e.target.value))}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "") {
+                    setFlLevel("");
+                  } else {
+                    const num = Number(val);
+                    if (num >= 0 && num <= 100) {
+                      setFlLevel(num);
+                    }
+                  }
+                }}
               />
             </div>
             <div>
