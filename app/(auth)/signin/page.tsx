@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { STAFF } from "../../(dashboard)/layout";
 import { API_BASE_URL } from "../../config";
@@ -19,6 +19,16 @@ export default function SignInPage() {
   const [loginMsg, setLoginMsg] = useState({ text: "", type: "" });
   const [isPending, setIsPending] = useState(false);
   const [btnHover, setBtnHover] = useState(false);
+
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Password reset modal states
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
@@ -151,7 +161,7 @@ export default function SignInPage() {
           width: "40%",
           minWidth: "360px",
           background: "linear-gradient(135deg, rgba(225,239,231,0.5) 0%, rgba(252,235,219,0.5) 50%, rgba(247,228,222,0.5) 100%)",
-          display: "flex",
+          display: isMobile ? "none" : "flex",
           flexDirection: "column",
           justifyContent: "center",
           padding: "60px 48px",
@@ -284,7 +294,7 @@ export default function SignInPage() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "center",
-          padding: "60px 10%",
+          padding: isMobile ? "40px 24px" : "60px 10%",
           background: "#FFFFFF"
         }}
       >
@@ -292,7 +302,7 @@ export default function SignInPage() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          style={{ maxWidth: "420px", width: "100%" }}
+          style={{ maxWidth: "420px", width: "100%", margin: isMobile ? "0 auto" : "0" }}
         >
           <h2
             style={{
