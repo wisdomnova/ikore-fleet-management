@@ -19,6 +19,16 @@ export default function FleetBoardPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedCarId, setSelectedCarId] = useState<number | "all">("all");
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const todayISO = new Date().toISOString().slice(0, 10);
   
   // Calculate selectedDateISO safely in local time timezone
@@ -682,22 +692,26 @@ export default function FleetBoardPage() {
                       background: isDayToday ? "#F0F9FF" : "#FFFFFF",
                       border: isDayToday ? "1.5px solid #0284C7" : "1px solid #E5E7EB",
                       borderRadius: "8px",
-                      minHeight: "110px",
-                      padding: "8px",
+                      minHeight: isMobile ? "64px" : "110px",
+                      padding: isMobile ? "4px" : "8px",
                       cursor: "pointer",
                       opacity: isCurrentMonth ? 1 : 0.45,
                       transition: "all 0.15s",
                       display: "flex",
                       flexDirection: "column",
-                      gap: "4px"
+                      gap: isMobile ? "2px" : "4px"
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-2px)";
-                      e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0,0,0,0.05)";
+                      if (!isMobile) {
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                        e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0,0,0,0.05)";
+                      }
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "none";
-                      e.currentTarget.style.boxShadow = "none";
+                      if (!isMobile) {
+                        e.currentTarget.style.transform = "none";
+                        e.currentTarget.style.boxShadow = "none";
+                      }
                     }}
                   >
                     {/* Day Label */}
@@ -720,51 +734,68 @@ export default function FleetBoardPage() {
                       </span>
                       {dayBookings.length > 0 && (
                         <span style={{ fontSize: "0.7rem", color: "#6B7280" }}>
-                          {dayBookings.length} {dayBookings.length === 1 ? "trip" : "trips"}
+                          {isMobile ? dayBookings.length : `${dayBookings.length} ${dayBookings.length === 1 ? "trip" : "trips"}`}
                         </span>
                       )}
                     </div>
                     
-                    {/* Day Bookings List */}
-                    <div 
-                      style={{ 
-                        flex: 1, 
-                        display: "flex", 
-                        flexDirection: "column", 
-                        gap: "3px", 
-                        overflowY: "auto", 
-                        maxHeight: "75px"
-                      }}
-                      className="no-scrollbar"
-                    >
-                      {dayBookings.map((b) => {
-                        const bg = b.co === "Tractrac" ? "var(--tt-soft)" : "var(--ik-soft)";
-                        const color = b.co === "Tractrac" ? "var(--tt-dark)" : "var(--ik-dark)";
-                        const border = b.status === "pending" ? "1px dashed var(--muted)" : "1px solid transparent";
-                        const c = cars.find((car) => car.id === b.carId);
-                        
-                        return (
-                          <div
+                    {/* Day Bookings List (collapses to dots on mobile) */}
+                    {isMobile ? (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "3px", marginTop: "4px", justifyContent: "center" }}>
+                        {dayBookings.map((b) => (
+                          <span
                             key={b.id}
-                            title={`${b.start}–${b.end} · ${b.staff} · ${b.dest}`}
                             style={{
-                              fontSize: "0.68rem",
-                              padding: "2px 6px",
-                              borderRadius: "4px",
-                              background: bg,
-                              color: color,
-                              border: border,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              fontWeight: 600
+                              width: "6px",
+                              height: "6px",
+                              borderRadius: "50%",
+                              background: b.co === "Tractrac" ? "var(--tt)" : "var(--ik)",
+                              opacity: b.status === "pending" ? 0.5 : 1
                             }}
-                          >
-                            {b.start} {b.staff.split(" ")[0]} ({isOfficeTrip(b) ? (c?.plate !== "TBD" ? c?.plate : c?.name.split(" ")[0]) : b.mode})
-                          </div>
-                        );
-                      })}
-                    </div>
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div 
+                        style={{ 
+                          flex: 1, 
+                          display: "flex", 
+                          flexDirection: "column", 
+                          gap: "3px", 
+                          overflowY: "auto", 
+                          maxHeight: "75px"
+                        }}
+                        className="no-scrollbar"
+                      >
+                        {dayBookings.map((b) => {
+                          const bg = b.co === "Tractrac" ? "var(--tt-soft)" : "var(--ik-soft)";
+                          const color = b.co === "Tractrac" ? "var(--tt-dark)" : "var(--ik-dark)";
+                          const border = b.status === "pending" ? "1px dashed var(--muted)" : "1px solid transparent";
+                          const c = cars.find((car) => car.id === b.carId);
+                          
+                          return (
+                            <div
+                              key={b.id}
+                              title={`${b.start}–${b.end} · ${b.staff} · ${b.dest}`}
+                              style={{
+                                fontSize: "0.68rem",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                background: bg,
+                                color: color,
+                                border: border,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                fontWeight: 600
+                              }}
+                            >
+                              {b.start} {b.staff.split(" ")[0]} ({isOfficeTrip(b) ? (c?.plate !== "TBD" ? c?.plate : c?.name.split(" ")[0]) : b.mode})
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}

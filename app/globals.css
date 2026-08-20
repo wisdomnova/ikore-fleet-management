@@ -1920,3 +1920,40 @@ table td {
   white-space: nowrap;
   vertical-align: middle;
 }
+
+/* Responsive stats overrides */
+@media (max-width: 1024px) {
+  .stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px !important;
+    padding: 16px !important;
+  }
+  .stat {
+    border-right: none !important;
+    padding-right: 0 !important;
+    border-bottom: 1px solid #E5E7EB;
+    padding-bottom: 12px;
+  }
+  /* Remove bottom border on the last row */
+  .stat:nth-last-child(-n+2) {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats {
+    grid-template-columns: 1fr !important;
+  }
+  .stat {
+    border-right: none !important;
+    padding-right: 0 !important;
+    border-bottom: 1px solid #E5E7EB !important;
+    padding-bottom: 12px !important;
+  }
+  .stat:last-child {
+    border-bottom: none !important;
+    padding-bottom: 0 !important;
+  }
+}

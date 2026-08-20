@@ -22,6 +22,16 @@ export default function BookCarPage() {
 
   const todayISO = new Date().toISOString().slice(0, 10);
 
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const [bkCar, setBkCar] = useState(1);
   const [bkDate, setBkDate] = useState(todayISO);
   const [bkStart, setBkStart] = useState("08:00");
@@ -195,7 +205,7 @@ export default function BookCarPage() {
 
   return (
     <section className="active">
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "32px", marginBottom: "40px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 340px", gap: "32px", marginBottom: "40px" }}>
 
         {/* LEFT COLUMN: The Booking Form */}
         <div style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", borderRadius: "12px", padding: "28px" }}>
@@ -222,7 +232,7 @@ export default function BookCarPage() {
           <form onSubmit={handleBookingSubmit} style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
 
             {/* Form Row 1 */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "20px" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.8rem", color: "#4B5563", marginBottom: "6px" }}>
                   Requested by
@@ -266,7 +276,7 @@ export default function BookCarPage() {
             </div>
 
             {/* Form Row 2: Vehicle & Persons */}
-            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: "20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: "20px" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.8rem", color: "#4B5563", marginBottom: "6px" }}>
                   Vehicle
@@ -338,7 +348,7 @@ export default function BookCarPage() {
             </div>
 
             {/* Form Row 3: Date & Times */}
-            <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr", gap: "20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr 1fr", gap: "20px" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.8rem", color: "#4B5563", marginBottom: "6px" }}>
                   Date
@@ -409,7 +419,7 @@ export default function BookCarPage() {
             </div>
 
             {/* Form Row 4 */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "20px" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.8rem", color: "#4B5563", marginBottom: "6px" }}>
                   Approver (from your company)
@@ -445,7 +455,7 @@ export default function BookCarPage() {
             </div>
 
             {/* Form Row 5 */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "20px" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.8rem", color: "#4B5563", marginBottom: "6px" }}>
                   Driver

@@ -14,7 +14,9 @@ import {
   IconList,
   IconUsers,
   IconMapPin,
-  IconLogout
+  IconLogout,
+  IconMenu2,
+  IconX
 } from "@tabler/icons-react";
 
 // ============================== TYPES ==============================
@@ -260,6 +262,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [nextIssueId, setNextIssueId] = useState(3);
   const [nextCarId, setNextCarId] = useState(6);
 
+  // Responsive state checkers
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Check window size on mount and resize
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Auto close mobile drawer on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
   // Today Date details
   const [todayISO, setTodayISO] = useState("");
   const [todayFormatted, setTodayFormatted] = useState("");
@@ -297,11 +318,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (storedUser) {
       setCurrentUser(JSON.parse(storedUser));
     } else {
-      // If not logged in, redirect to signin
       router.push("/signin");
     }
 
-    // Instantly load cached data to avoid empty screens
     try {
       const storedCars = localStorage.getItem("fleet_cars");
       if (storedCars) setCars(JSON.parse(storedCars));
@@ -427,9 +446,65 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         showToastMsg
       }}
     >
-      <div className="dashboard-container">
+      <div className="dashboard-container" style={{ position: "relative" }}>
+        
+        {/* Mobile backdrop drawer overlay */}
+        {isMobile && isMobileMenuOpen && (
+          <div
+            onClick={() => setIsMobileMenuOpen(false)}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.4)",
+              backdropFilter: "blur(2.5px)",
+              zIndex: 40,
+              transition: "opacity 0.2s ease"
+            }}
+          />
+        )}
+
         {/* SIDEBAR */}
-        <aside className="sidebar" style={{ background: "#F9FAFB", colorScheme: "light" }}>
+        <aside 
+          className="sidebar" 
+          style={{ 
+            background: "#F9FAFB", 
+            colorScheme: "light",
+            position: isMobile ? "fixed" : "sticky",
+            top: 0,
+            bottom: isMobile ? 0 : "auto",
+            left: 0,
+            zIndex: isMobile ? 50 : 1,
+            transform: isMobile ? (isMobileMenuOpen ? "translateX(0)" : "translateX(-100%)") : "none",
+            transition: isMobile ? "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)" : "none",
+            boxShadow: isMobile && isMobileMenuOpen ? "4px 0 25px rgba(0, 0, 0, 0.08)" : "none",
+            borderRight: "1.5px solid #E5E7EB",
+            height: "100vh",
+            width: "260px",
+            minWidth: "260px",
+            padding: "32px 18px"
+          }}
+        >
+          {isMobile && (
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(false)}
+              style={{
+                position: "absolute",
+                top: "20px",
+                right: "18px",
+                background: "transparent",
+                border: "none",
+                cursor: "pointer",
+                color: "#9CA3AF"
+              }}
+            >
+              <IconX size={24} />
+            </button>
+          )}
+
           <div>
             <div style={{ padding: "0 12px", marginBottom: "28px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "20px" }}>
@@ -601,11 +676,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </aside>
 
         {/* MAIN CONTENT AREA */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#FFFFFF" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#FFFFFF", overflowX: "hidden" }}>
           {/* Header Row */}
           <header
             style={{
-              padding: "24px 40px",
+              padding: isMobile ? "18px 20px" : "24px 40px",
               borderBottom: "1.5px solid #F3F4F6",
               display: "flex",
               alignItems: "center",
@@ -613,45 +688,68 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               background: "#FFFFFF"
             }}
           >
-            <div>
-              <div style={{ fontSize: "0.78rem", fontWeight: 500, color: "#9CA3AF" }}>
-                Booking window 08:00 – 22:00
+            <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+              {isMobile && (
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(true)}
+                  style={{
+                    background: "#F3F4F6",
+                    border: "none",
+                    cursor: "pointer",
+                    color: "#111827",
+                    padding: "6px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "8px"
+                  }}
+                >
+                  <IconMenu2 size={22} />
+                </button>
+              )}
+              <div>
+                <div style={{ fontSize: "0.78rem", fontWeight: 500, color: "#9CA3AF" }}>
+                  Booking window 08:00 – 22:00
+                </div>
+                <h2 style={{ fontSize: "1.25rem", fontWeight: 500, color: "#111827", marginTop: "2px", letterSpacing: "-0.01em" }}>
+                  {pathname === "/"
+                    ? "Fleet board"
+                    : pathname === "/book"
+                      ? "Book a car"
+                      : pathname === "/approvals"
+                        ? "Approvals"
+                        : pathname === "/fuel"
+                          ? "Fuel log"
+                          : pathname === "/drivers"
+                            ? "Drivers"
+                            : pathname === "/maintenance"
+                              ? "Maintenance"
+                              : pathname === "/vehicles"
+                                ? "Vehicles"
+                                : pathname === "/staff"
+                                  ? "Staff directory"
+                                  : pathname === "/locations"
+                                    ? "Locations"
+                                    : "Dashboard"}
+                </h2>
               </div>
-              <h2 style={{ fontSize: "1.3rem", fontWeight: 500, color: "#111827", marginTop: "2px", letterSpacing: "-0.01em" }}>
-                {pathname === "/"
-                  ? "Fleet board"
-                  : pathname === "/book"
-                    ? "Book a car"
-                    : pathname === "/approvals"
-                      ? "Approvals"
-                      : pathname === "/fuel"
-                        ? "Fuel log"
-                        : pathname === "/drivers"
-                          ? "Drivers"
-                          : pathname === "/maintenance"
-                            ? "Maintenance"
-                            : pathname === "/vehicles"
-                              ? "Vehicles"
-                              : pathname === "/staff"
-                                ? "Staff directory"
-                                : pathname === "/locations"
-                                  ? "Locations"
-                                  : "Dashboard"}
-              </h2>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-              <div style={{ background: "#F3F4F6", color: "#4B5563", fontSize: "0.8rem", fontWeight: 500, padding: "6px 12px", borderRadius: "20px" }}>
-                {todayFormatted}
+            {!isMobile && (
+              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                <div style={{ background: "#F3F4F6", color: "#4B5563", fontSize: "0.8rem", fontWeight: 500, padding: "6px 12px", borderRadius: "20px" }}>
+                  {todayFormatted}
+                </div>
+                <div style={{ background: "#F3F4F6", color: "#4B5563", fontSize: "0.8rem", fontWeight: 500, padding: "6px 12px", borderRadius: "20px" }}>
+                  {clockStr}
+                </div>
               </div>
-              <div style={{ background: "#F3F4F6", color: "#4B5563", fontSize: "0.8rem", fontWeight: 500, padding: "6px 12px", borderRadius: "20px" }}>
-                {clockStr}
-              </div>
-            </div>
+            )}
           </header>
 
           {/* Child Page Container */}
-          <main style={{ flex: 1, padding: "40px", overflowY: "auto" }}>
+          <main style={{ flex: 1, padding: isMobile ? "20px" : "40px", overflowY: "auto" }}>
             {children}
           </main>
         </div>
