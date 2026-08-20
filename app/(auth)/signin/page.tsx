@@ -24,6 +24,8 @@ export default function SignInPage() {
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
   const [resetPw, setResetPw] = useState("");
   const [confirmResetPw, setConfirmResetPw] = useState("");
+  const [showResetPw, setShowResetPw] = useState(false);
+  const [showConfirmResetPw, setShowConfirmResetPw] = useState(false);
   const [resetPwMsg, setResetPwMsg] = useState({ text: "", type: "" });
   const [isResetPending, setIsResetPending] = useState(false);
   const [authenticatedUserObj, setAuthenticatedUserObj] = useState<any>(null);
@@ -599,45 +601,93 @@ export default function SignInPage() {
                   <label style={{ display: "block", fontSize: "0.78rem", color: "#4B5563", marginBottom: "6px" }}>
                     New Password
                   </label>
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={resetPw}
-                    onChange={(e) => setResetPw(e.target.value)}
-                    disabled={isResetPending}
-                    style={{
-                      width: "100%",
-                      padding: "11px 14px",
-                      fontSize: "0.88rem",
-                      border: "1.5px solid #E5E7EB",
-                      borderRadius: "10px",
-                      color: "#111827",
-                      background: "#FFFFFF",
-                      outline: "none"
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showResetPw ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={resetPw}
+                      onChange={(e) => setResetPw(e.target.value)}
+                      disabled={isResetPending}
+                      style={{
+                        width: "100%",
+                        padding: "11px 42px 11px 14px",
+                        fontSize: "0.88rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "10px",
+                        color: "#111827",
+                        background: "#FFFFFF",
+                        outline: "none"
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={isResetPending}
+                      onClick={() => setShowResetPw(!showResetPw)}
+                      style={{
+                        position: "absolute",
+                        right: "12px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: isResetPending ? "not-allowed" : "pointer",
+                        color: "#9CA3AF",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 0,
+                        outline: "none"
+                      }}
+                    >
+                      {showResetPw ? <IconEyeOff size={18} stroke={1.5} /> : <IconEye size={18} stroke={1.5} />}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label style={{ display: "block", fontSize: "0.78rem", color: "#4B5563", marginBottom: "6px" }}>
                     Confirm Password
                   </label>
-                  <input
-                    type="password"
-                    placeholder="••••••••"
-                    value={confirmResetPw}
-                    onChange={(e) => setConfirmResetPw(e.target.value)}
-                    disabled={isResetPending}
-                    style={{
-                      width: "100%",
-                      padding: "11px 14px",
-                      fontSize: "0.88rem",
-                      border: "1.5px solid #E5E7EB",
-                      borderRadius: "10px",
-                      color: "#111827",
-                      background: "#FFFFFF",
-                      outline: "none"
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showConfirmResetPw ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={confirmResetPw}
+                      onChange={(e) => setConfirmResetPw(e.target.value)}
+                      disabled={isResetPending}
+                      style={{
+                        width: "100%",
+                        padding: "11px 42px 11px 14px",
+                        fontSize: "0.88rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "10px",
+                        color: "#111827",
+                        background: "#FFFFFF",
+                        outline: "none"
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={isResetPending}
+                      onClick={() => setShowConfirmResetPw(!showConfirmResetPw)}
+                      style={{
+                        position: "absolute",
+                        right: "12px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: isResetPending ? "not-allowed" : "pointer",
+                        color: "#9CA3AF",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 0,
+                        outline: "none"
+                      }}
+                    >
+                      {showConfirmResetPw ? <IconEyeOff size={18} stroke={1.5} /> : <IconEye size={18} stroke={1.5} />}
+                    </button>
+                  </div>
                 </div>
               </div>
 
