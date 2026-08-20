@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useFleet } from "../layout";
 import { API_BASE_URL } from "../../config";
+import Dropdown from "../../components/Dropdown";
 
 const SERVICE_INTERVAL = 5000;
 const MAINT_CATEGORIES = [
@@ -35,7 +36,7 @@ export default function MaintenancePage() {
   const todayISO = new Date().toISOString().slice(0, 10);
 
   const [isCar, setIsCar] = useState(1);
-  const [isSev, setIsSev] = useState("Low - note for next service");
+  const [isSev, setIsSev] = useState("Low");
   const [isDesc, setIsDesc] = useState("");
   const [issueMsg, setIssueMsg] = useState({ text: "", type: "" });
 
@@ -51,6 +52,22 @@ export default function MaintenancePage() {
 
   const isAdminUser = currentUser?.name === "Godsfavour Nyoyoko";
   const isDriverUser = currentUser ? ["Peter Agbo", "Ameh Friday", "Louis Ogbuneke"].includes(currentUser.name) : false;
+
+  const carOptions = cars.map((c) => ({
+    value: c.id,
+    label: `${c.plate !== "TBD" ? c.plate + " - " : ""}${c.name} (${c.co === "Tractrac" ? "TracTrac" : "Ikore"})`
+  }));
+
+  const severityOptions = [
+    { value: "Low", label: "Low - note for next service" },
+    { value: "Medium", label: "Medium - needs attention soon" },
+    { value: "High", label: "High - unsafe / stop using vehicle" }
+  ];
+
+  const categoryOptions = MAINT_CATEGORIES.map((m) => ({
+    value: m,
+    label: m
+  }));
 
   const fmtN = (n: number): string => {
     return n.toLocaleString("en-NG");
@@ -292,26 +309,21 @@ export default function MaintenancePage() {
           <div className="frow">
             <div>
               <label htmlFor="isCar">Vehicle</label>
-              <select
-                id="isCar"
+              <Dropdown
+                options={carOptions}
                 value={isCar}
-                onChange={(e) => setIsCar(Number(e.target.value))}
-              >
-                {cars.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.plate !== "TBD" ? c.plate + " - " : ""}
-                    {c.name} ({c.co === "Tractrac" ? "TracTrac" : "Ikore"})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setIsCar(Number(val))}
+                placeholder="Select vehicle…"
+              />
             </div>
             <div>
               <label htmlFor="isSev">Severity</label>
-              <select id="isSev" value={isSev} onChange={(e) => setIsSev(e.target.value)}>
-                <option value="Low - note for next service">Low - note for next service</option>
-                <option value="Medium - needs attention soon">Medium - needs attention soon</option>
-                <option value="High - unsafe / stop using vehicle">High - unsafe / stop using vehicle</option>
-              </select>
+              <Dropdown
+                options={severityOptions}
+                value={isSev}
+                onChange={(val) => setIsSev(val)}
+                placeholder="Select severity…"
+              />
             </div>
           </div>
           <div className="frow single">
@@ -426,32 +438,21 @@ export default function MaintenancePage() {
           <div className="frow">
             <div>
               <label htmlFor="svCar">Vehicle</label>
-              <select
-                id="svCar"
+              <Dropdown
+                options={carOptions}
                 value={svCar}
-                onChange={(e) => setSvCar(Number(e.target.value))}
-              >
-                {cars.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.plate !== "TBD" ? c.plate + " - " : ""}
-                    {c.name} ({c.co === "Tractrac" ? "TracTrac" : "Ikore"})
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSvCar(Number(val))}
+                placeholder="Select vehicle…"
+              />
             </div>
             <div>
               <label htmlFor="svType">Maintenance category</label>
-              <select
-                id="svType"
+              <Dropdown
+                options={categoryOptions}
                 value={svType}
-                onChange={(e) => setSvType(e.target.value)}
-              >
-                {MAINT_CATEGORIES.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
+                onChange={(val) => setSvType(val)}
+                placeholder="Select category…"
+              />
             </div>
           </div>
           <div className="frow">

@@ -3,6 +3,7 @@
 import React from "react";
 import { useFleet, DRIVER_NAMES } from "../layout";
 import { API_BASE_URL } from "../../config";
+import Dropdown from "../../components/Dropdown";
 
 const DAY_START = 8;
 const DAY_END = 22;
@@ -18,6 +19,25 @@ export default function ApprovalsPage() {
   } = useFleet();
 
   const todayISO = new Date().toISOString().slice(0, 10);
+
+  const modeOptions = [
+    { value: "Office car", label: "Office car" },
+    { value: "Car hire service", label: "Car hire service" },
+    { value: "Bolt", label: "Bolt (ride-hailing)" }
+  ];
+
+  const carOptions = cars.map((car) => ({
+    value: car.id,
+    label: `${car.plate !== "TBD" ? car.plate + " - " : ""}${car.name} (${car.co === "Tractrac" ? "TracTrac" : "Ikore"})${car.shop ? " - workshop" : ""}`
+  }));
+
+  const driverOptions = [
+    { value: "Assign any available driver", label: "Assign any available driver" },
+    ...DRIVER_NAMES.map((d) => ({ value: d, label: d })),
+    { value: "Self-drive (approved staff)", label: "Self-drive (approved staff)" },
+    { value: "Bolt ride (arranged)", label: "Bolt ride (arranged)" },
+    { value: "Hired vehicle with driver", label: "Hired vehicle with driver" }
+  ];
 
   const isOfficeTrip = (b: any) => !b.mode || b.mode === "Office car";
 
@@ -211,53 +231,30 @@ export default function ApprovalsPage() {
                   <div className="frow">
                     <div>
                       <label>Trip mode</label>
-                      <select
+                      <Dropdown
+                        options={modeOptions}
                         value={b.mode || "Office car"}
-                        onChange={(e) => handleSaveAdjustment(b.id, { mode: e.target.value })}
-                      >
-                        <option value="Office car">Office car</option>
-                        <option value="Car hire service">Car hire service</option>
-                        <option value="Bolt">Bolt (ride-hailing)</option>
-                      </select>
+                        onChange={(val) => handleSaveAdjustment(b.id, { mode: val })}
+                      />
                     </div>
                     <div>
                       <label>Vehicle (office car trips)</label>
-                      <select
+                      <Dropdown
+                        options={carOptions}
                         value={b.carId}
                         disabled={!!(b.mode && b.mode !== "Office car")}
-                        onChange={(e) =>
-                          handleSaveAdjustment(b.id, { carId: Number(e.target.value) })
-                        }
-                      >
-                        {cars.map((car) => (
-                          <option key={car.id} value={car.id} disabled={car.shop}>
-                            {car.plate !== "TBD" ? car.plate + " - " : ""}
-                            {car.name} ({car.co === "Tractrac" ? "TracTrac" : "Ikore"})
-                            {car.shop ? " - workshop" : ""}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={(val) => handleSaveAdjustment(b.id, { carId: Number(val) })}
+                      />
                     </div>
                   </div>
                   <div className="frow">
                     <div>
                       <label>Driver</label>
-                      <select
+                      <Dropdown
+                        options={driverOptions}
                         value={b.driver}
-                        onChange={(e) =>
-                          handleSaveAdjustment(b.id, { driver: e.target.value })
-                        }
-                      >
-                        <option value="Assign any available driver">Assign any available driver</option>
-                        {DRIVER_NAMES.map((d) => (
-                          <option key={d} value={d}>
-                            {d}
-                          </option>
-                        ))}
-                        <option value="Self-drive (approved staff)">Self-drive (approved staff)</option>
-                        <option value="Bolt ride (arranged)">Bolt ride (arranged)</option>
-                        <option value="Hired vehicle with driver">Hired vehicle with driver</option>
-                      </select>
+                        onChange={(val) => handleSaveAdjustment(b.id, { driver: val })}
+                      />
                     </div>
                     <div className="frow" style={{ marginBottom: 0, gap: "10px" }}>
                       <div>
@@ -353,53 +350,30 @@ export default function ApprovalsPage() {
                     <div className="frow">
                       <div>
                         <label>Trip mode</label>
-                        <select
+                        <Dropdown
+                          options={modeOptions}
                           value={b.mode || "Office car"}
-                          onChange={(e) => handleSaveAdjustment(b.id, { mode: e.target.value })}
-                        >
-                          <option value="Office car">Office car</option>
-                          <option value="Car hire service">Car hire service</option>
-                          <option value="Bolt">Bolt (ride-hailing)</option>
-                        </select>
+                          onChange={(val) => handleSaveAdjustment(b.id, { mode: val })}
+                        />
                       </div>
                       <div>
                         <label>Vehicle (office car trips)</label>
-                        <select
+                        <Dropdown
+                          options={carOptions}
                           value={b.carId}
                           disabled={!!(b.mode && b.mode !== "Office car")}
-                          onChange={(e) =>
-                            handleSaveAdjustment(b.id, { carId: Number(e.target.value) })
-                          }
-                        >
-                          {cars.map((car) => (
-                            <option key={car.id} value={car.id} disabled={car.shop}>
-                              {car.plate !== "TBD" ? car.plate + " - " : ""}
-                              {car.name} ({car.co === "Tractrac" ? "TracTrac" : "Ikore"})
-                              {car.shop ? " - workshop" : ""}
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(val) => handleSaveAdjustment(b.id, { carId: Number(val) })}
+                        />
                       </div>
                     </div>
                     <div className="frow">
                       <div>
                         <label>Driver</label>
-                        <select
+                        <Dropdown
+                          options={driverOptions}
                           value={b.driver}
-                          onChange={(e) =>
-                            handleSaveAdjustment(b.id, { driver: e.target.value })
-                          }
-                        >
-                          <option value="Assign any available driver">Assign any available driver</option>
-                          {DRIVER_NAMES.map((d) => (
-                            <option key={d} value={d}>
-                              {d}
-                            </option>
-                          ))}
-                          <option value="Self-drive (approved staff)">Self-drive (approved staff)</option>
-                          <option value="Bolt ride (arranged)">Bolt ride (arranged)</option>
-                          <option value="Hired vehicle with driver">Hired vehicle with driver</option>
-                        </select>
+                          onChange={(val) => handleSaveAdjustment(b.id, { driver: val })}
+                        />
                       </div>
                       <div className="frow" style={{ marginBottom: 0, gap: "10px" }}>
                         <div>
