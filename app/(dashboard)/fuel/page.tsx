@@ -281,6 +281,11 @@ export default function FuelLogPage() {
               })}
           </tbody>
         </table>
+        {fuelLogs.length === 0 && (
+          <div style={{ padding: "40px", textAlign: "center", color: "#6B7280", fontSize: "0.88rem" }}>
+            No fuel logs recorded yet.
+          </div>
+        )}
       </div>
     </section>
   );
