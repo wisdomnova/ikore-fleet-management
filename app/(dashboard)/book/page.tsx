@@ -5,6 +5,7 @@ import { useFleet, STAFF } from "../layout";
 import { API_BASE_URL } from "../../config";
 import Dropdown from "../../components/Dropdown";
 import { motion } from "framer-motion";
+import { isBookingOnDate, getBookingDayTimes, getBookingDayTimesForVal, getOverlappingDates, mins } from "../../utils";
 
 const DAY_START = 8;
 const DAY_END = 22;
@@ -42,15 +43,17 @@ export default function BookCarPage() {
     }
   }, [bookings.length, totalPages, currentPage]);
 
-  const [bkCar, setBkCar] = useState(1);
-  const [bkDate, setBkDate] = useState(todayISO);
+  const [bkCar, setBkCar] = useState<number | string>(1);
+  const [bkStartDate, setBkStartDate] = useState(todayISO);
+  const [bkEndDate, setBkEndDate] = useState(todayISO);
   const [bkStart, setBkStart] = useState("08:00");
   const [bkEnd, setBkEnd] = useState("10:00");
   const [bkManager, setBkManager] = useState("");
   const [bkDest, setBkDest] = useState("");
   const [bkDriver, setBkDriver] = useState("Assign any available driver");
   const [bkPurpose, setBkPurpose] = useState("");
-  const [bkPassengers, setBkPassengers] = useState(1);
+  const [bkPassengers, setBkPassengers] = useState<number | "">(1);
+  const [bkPassengerNames, setBkPassengerNames] = useState("");
   const [bookMsg, setBookMsg] = useState({ text: "", type: "" });
   const [isBookPending, setIsBookPending] = useState(false);
 
@@ -62,12 +65,13 @@ export default function BookCarPage() {
   };
 
   const getRecommendation = () => {
-    if (bkPassengers > 7) {
+    const passVal = Number(bkPassengers) || 1;
+    if (passVal > 7) {
       return {
         text: "Toyota Hiace Bus (15 seats) is recommended for larger groups.",
         carName: "Toyota Hiace Bus"
       };
-    } else if (bkPassengers > 5) {
+    } else if (passVal > 5) {
       return {
         text: "Toyota Sienna or Toyota Highlander (7 seats) is recommended.",
         carName: "Sienna / Highlander"
@@ -80,17 +84,14 @@ export default function BookCarPage() {
     }
   };
 
-  const selectedCar = cars.find((c) => c.id === bkCar);
+  const selectedCar = typeof bkCar === "number" ? cars.find((c) => c.id === bkCar) : null;
   const selectedCarCapacity = selectedCar ? getCarCapacity(selectedCar.name) : 5;
-  const isOverCapacity = bkPassengers > selectedCarCapacity;
+  const isOverCapacity = (Number(bkPassengers) || 1) > selectedCarCapacity;
 
   const isDriverUser = currentUser ? ["Peter Agbo", "Ameh Friday", "Louis Ogbuneke"].includes(currentUser.name) : false;
   const isAdminUser = currentUser?.name === "Godsfavour Nyoyoko";
 
-  const mins = (t: string): number => {
-    const [h, m] = t.split(":").map(Number);
-    return h * 60 + m;
-  };
+
 
   const fmtN = (n: number): string => {
     return n.toLocaleString("en-NG");
@@ -112,8 +113,12 @@ export default function BookCarPage() {
     setBookMsg({ text: "", type: "" });
     if (!currentUser) return;
 
-    if (!bkDate || !bkStart || !bkEnd) {
-      setBookMsg({ text: "Please fill in the date, start and end time.", type: "err" });
+    if (!bkStartDate || !bkEndDate || !bkStart || !bkEnd) {
+      setBookMsg({ text: "Please fill in the start date, end date, start time, and end time.", type: "err" });
+      return;
+    }
+    if (bkEndDate < bkStartDate) {
+      setBookMsg({ text: "End date cannot be before the start date.", type: "err" });
       return;
     }
     if (!bkManager) {
@@ -124,42 +129,68 @@ export default function BookCarPage() {
       setBookMsg({ text: "Bookings must fall between 08:00 and 22:00.", type: "err" });
       return;
     }
-    if (mins(bkEnd) <= mins(bkStart)) {
-      setBookMsg({ text: "End time must be after the start time.", type: "err" });
+    if (bkStartDate === bkEndDate && mins(bkEnd) <= mins(bkStart)) {
+      setBookMsg({ text: "End time must be after the start time for a single day booking.", type: "err" });
       return;
     }
 
-    const clash = bookings.find(
-      (b) =>
-        b.carId === bkCar &&
-        b.date === bkDate &&
-        b.status !== "declined" &&
-        isOfficeTrip(b) &&
-        mins(bkStart) < mins(b.end) &&
-        mins(b.start) < mins(bkEnd)
-    );
+    const clash = bookings.find((b) => {
+      if (bkCar === "bolt" || bkCar === "car_hire") return false;
+      if (b.carId !== bkCar || b.status === "declined" || !isOfficeTrip(b)) return false;
+      const [start1, end1] = [bkStartDate, bkEndDate];
+      const [start2, end2] = b.date.includes(" to ") ? b.date.split(" to ") : [b.date, b.date];
 
-    const targetCar = cars.find((c) => c.id === bkCar);
+      if (!(start1 <= end2 && start2 <= end1)) return false;
+
+      const overlapDays = getOverlappingDates(start1, end1, start2, end2);
+      if (overlapDays.length > 1) return true;
+      if (overlapDays.length === 1) {
+        const targetDate = overlapDays[0];
+        const t1 = getBookingDayTimesForVal(start1, end1, bkStart, bkEnd, targetDate);
+        const t2 = getBookingDayTimes(b, targetDate);
+        return mins(t1.start) < mins(t2.end) && mins(t2.start) < mins(t1.end);
+      }
+      return false;
+    });
+
+    const isThirdParty = bkCar === "bolt" || bkCar === "car_hire";
+    const targetCar = typeof bkCar === "number" ? cars.find((c) => c.id === bkCar) : null;
 
     if (clash) {
       setBookMsg({
-        text: `${targetCar?.plate || "Vehicle"} already has a ${clash.status === "pending" ? "pending request" : "booking"} ${clash.start} - ${clash.end} (${clash.staff}, ${clash.co}). Choose another time or vehicle.`,
+        text: `${targetCar?.plate || "Vehicle"} already has a overlapping booking during this period (${clash.staff}, ${clash.co}). Choose another time/dates or vehicle.`,
         type: "err"
       });
       return;
     }
 
+    const numPass = Number(bkPassengers) || 1;
+    if (numPass < 1) {
+      setBookMsg({ text: "Number of persons going must be at least 1.", type: "err" });
+      return;
+    }
+
+    const finalDate = bkStartDate === bkEndDate ? bkStartDate : `${bkStartDate} to ${bkEndDate}`;
+    const passLabel = numPass > 1 ? ` (${numPass} persons)` : " (1 person)";
+    const passNamesSuffix = numPass > 1 && bkPassengerNames.trim() ? ` (With: ${bkPassengerNames.trim()})` : "";
+    const finalPurpose = bkPurpose.trim() + passLabel + passNamesSuffix;
+
+    const finalCarId = typeof bkCar === "number" ? bkCar : null;
+    const finalMode = bkCar === "bolt" ? "Bolt" : bkCar === "car_hire" ? "Car hire" : "Office car";
+    const finalDriver = bkCar === "bolt" ? "Bolt Driver" : bkCar === "car_hire" ? "Car Hire Driver" : bkDriver;
+
     const newBkFields = {
-      carId: bkCar,
-      date: bkDate,
+      carId: finalCarId,
+      mode: finalMode,
+      date: finalDate,
       start: bkStart,
       end: bkEnd,
       staff: currentUser.name + (isDriverUser ? " (Driver)" : ""),
       dept: currentUser.dept || "None",
       co: currentUser.co,
       dest: bkDest.trim() || "None",
-      driver: bkDriver,
-      purpose: bkPurpose.trim() + (bkPassengers > 1 ? ` (${bkPassengers} persons)` : " (1 person)"),
+      driver: finalDriver,
+      purpose: finalPurpose,
       manager: bkManager
     };
 
@@ -180,13 +211,15 @@ export default function BookCarPage() {
       const createdBooking = await response.json();
       setBookings([...bookings, createdBooking]);
 
+      const labelVeh = bkCar === "bolt" ? "Bolt ride request" : bkCar === "car_hire" ? "Car hire request" : (targetCar?.plate || "Vehicle");
       setBookMsg({
-        text: `Request sent. ${targetCar?.plate || "Vehicle"} is held for you, ${bkStart} - ${bkEnd}, awaiting approval from ${bkManager}.`,
+        text: `Request sent. ${labelVeh} is held for you, ${finalDate} (${bkStart} - ${bkEnd}), awaiting approval from ${bkManager}.`,
         type: "ok"
       });
       setBkDest("");
       setBkPurpose("");
       setBkPassengers(1);
+      setBkPassengerNames("");
       showToastMsg("Request sent for approval");
     } catch (err) {
       setBookMsg({ text: "Failed to send request to the server.", type: "err" });
@@ -195,10 +228,14 @@ export default function BookCarPage() {
     }
   };
 
-  const vehicleOptions = cars.map((c) => ({
-    value: c.id,
-    label: `${c.plate !== "TBD" ? c.plate + " - " : ""}${c.name} (${c.co === "Tractrac" ? "TracTrac" : c.co === "Ikore" ? "Ikore" : "ChananHill"})${c.shop ? " (In workshop)" : ""}`
-  }));
+  const vehicleOptions = [
+    ...cars.map((c) => ({
+      value: c.id,
+      label: `${c.plate !== "TBD" ? c.plate + " - " : ""}${c.name} (${c.co === "Tractrac" ? "TracTrac" : c.co === "Ikore" ? "Ikore" : "ChananHill"})${c.shop ? " (In workshop)" : ""}`
+    })),
+    { value: "bolt", label: "Bolt (Ride-hailing service)" },
+    { value: "car_hire", label: "Car Hire (Rent-a-car service)" }
+  ];
 
   const approverOptions = currentUser
     ? STAFF.filter((s) => (s.co === currentUser.co && s.approver) || s.name === "Godsfavour Nyoyoko").map((a) => ({
@@ -290,7 +327,7 @@ export default function BookCarPage() {
             </div>
 
             {/* Form Row 2: Vehicle & Persons */}
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr", gap: "20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : (Number(bkPassengers) || 1) > 1 ? "1.2fr 1fr 1.5fr" : "1.2fr 1fr", gap: "20px", alignItems: "end" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.8rem", color: "#4B5563", marginBottom: "6px" }}>
                   Vehicle
@@ -298,7 +335,7 @@ export default function BookCarPage() {
                 <Dropdown
                   options={vehicleOptions}
                   value={bkCar}
-                  onChange={(val) => setBkCar(Number(val))}
+                  onChange={(val) => setBkCar(val === "bolt" || val === "car_hire" ? val : Number(val))}
                   placeholder="Select vehicle..."
                 />
               </div>
@@ -311,7 +348,10 @@ export default function BookCarPage() {
                   min="1"
                   max="15"
                   value={bkPassengers}
-                  onChange={(e) => setBkPassengers(Math.max(1, Number(e.target.value)))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setBkPassengers(val === "" ? "" : Number(val));
+                  }}
                   style={{
                     width: "100%",
                     padding: "11px 14px",
@@ -324,6 +364,29 @@ export default function BookCarPage() {
                   }}
                 />
               </div>
+              {(Number(bkPassengers) || 1) > 1 && (
+                <div>
+                  <label style={{ display: "block", fontSize: "0.8rem", color: "#4B5563", marginBottom: "6px" }}>
+                    Names of other passengers (comma-separated)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. John Doe, Jane Smith"
+                    value={bkPassengerNames}
+                    onChange={(e) => setBkPassengerNames(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "11px 14px",
+                      fontSize: "0.88rem",
+                      border: "1.5px solid #E5E7EB",
+                      borderRadius: "10px",
+                      background: "#FFFFFF",
+                      color: "#111827",
+                      outline: "none"
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
             {/* Recommendation & Warning Alerts */}
@@ -362,16 +425,42 @@ export default function BookCarPage() {
             </div>
 
             {/* Form Row 3: Date & Times */}
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.2fr 1fr 1fr", gap: "20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr 1fr 1fr", gap: "20px" }}>
               <div>
                 <label style={{ display: "block", fontSize: "0.8rem", color: "#4B5563", marginBottom: "6px" }}>
-                  Date
+                  Start date
                 </label>
                 <input
                   type="date"
                   min={todayISO}
-                  value={bkDate}
-                  onChange={(e) => setBkDate(e.target.value)}
+                  value={bkStartDate}
+                  onChange={(e) => {
+                    setBkStartDate(e.target.value);
+                    if (bkEndDate < e.target.value) {
+                      setBkEndDate(e.target.value);
+                    }
+                  }}
+                  style={{
+                    width: "100%",
+                    padding: "11px 14px",
+                    fontSize: "0.88rem",
+                    border: "1.5px solid #E5E7EB",
+                    borderRadius: "10px",
+                    background: "#FFFFFF",
+                    color: "#111827",
+                    outline: "none"
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: "block", fontSize: "0.8rem", color: "#4B5563", marginBottom: "6px" }}>
+                  End date
+                </label>
+                <input
+                  type="date"
+                  min={bkStartDate || todayISO}
+                  value={bkEndDate}
+                  onChange={(e) => setBkEndDate(e.target.value)}
                   style={{
                     width: "100%",
                     padding: "11px 14px",
