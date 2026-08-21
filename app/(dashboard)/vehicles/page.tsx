@@ -176,8 +176,8 @@ export default function VehiclesPage() {
                 <div className="appr-top">
                   <span className="appr-title">
                     <span className="plate">{c.plate}</span> {c.name}{" "}
-                    <span className={`co-chip ${c.co === "Tractrac" ? "tt" : "ik"}`}>
-                      {c.co === "Tractrac" ? "TracTrac" : "Ikore"}
+                    <span className={`co-chip ${c.co === "Tractrac" ? "tt" : c.co === "Ikore" ? "ik" : "ch"}`}>
+                      {c.co === "Tractrac" ? "TracTrac" : c.co === "Ikore" ? "Ikore" : "ChananHill"}
                     </span>
                   </span>
                   <span>

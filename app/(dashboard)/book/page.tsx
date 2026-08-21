@@ -187,7 +187,7 @@ export default function BookCarPage() {
 
   const vehicleOptions = cars.map((c) => ({
     value: c.id,
-    label: `${c.plate !== "TBD" ? c.plate + " - " : ""}${c.name} (${c.co === "Tractrac" ? "TracTrac" : "Ikore"})${c.shop ? " (In workshop)" : ""}`
+    label: `${c.plate !== "TBD" ? c.plate + " - " : ""}${c.name} (${c.co === "Tractrac" ? "TracTrac" : c.co === "Ikore" ? "Ikore" : "ChananHill"})${c.shop ? " (In workshop)" : ""}`
   }));
 
   const approverOptions = currentUser
@@ -263,7 +263,7 @@ export default function BookCarPage() {
                 </label>
                 <input
                   type="text"
-                  value={currentUser ? `${currentUser.dept && currentUser.dept !== "-" && currentUser.dept !== "None" ? currentUser.dept + " · " : ""}${currentUser.co === "Tractrac" ? "TracTrac" : "Ikore"}` : ""}
+                  value={currentUser ? `${currentUser.dept && currentUser.dept !== "-" && currentUser.dept !== "None" ? currentUser.dept + " · " : ""}${currentUser.co === "Tractrac" ? "TracTrac" : currentUser.co === "Ikore" ? "Ikore" : "ChananHill"}` : ""}
                   readOnly
                   style={{
                     width: "100%",
@@ -609,8 +609,8 @@ export default function BookCarPage() {
                         )}
                       </td>
                       <td style={{ padding: "16px", fontSize: "0.85rem" }}>
-                        <span className={`co-chip ${b.co === "Tractrac" ? "tt" : "ik"}`}>
-                          {b.co === "Tractrac" ? "TracTrac" : "Ikore"}
+                        <span className={`co-chip ${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"}`}>
+                          {b.co === "Tractrac" ? "TracTrac" : b.co === "Ikore" ? "Ikore" : "ChananHill"}
                         </span>
                       </td>
                       <td style={{ padding: "16px", fontSize: "0.85rem", color: "#4B5563" }}>
