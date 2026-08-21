@@ -182,8 +182,37 @@ export default function ApprovalsPage() {
 
   const isAdminUser = currentUser?.name === ADMIN_NAME || currentUser?.name === "Divine Wisdom";
   const mine = (b: any) => currentUser && (isAdminUser || b.manager === currentUser.name);
+  
   const pending = bookings.filter((b) => b.status === "pending").filter(mine);
-  const decided = bookings.filter((b) => b.status !== "pending" && b.decidedAt && mine(b)).slice(-6).reverse();
+  const activeToday = bookings.filter((b) => b.date === todayISO && b.status === "approved");
+  const decided = bookings.filter((b) => b.status !== "pending" && b.decidedAt && mine(b)).reverse();
+
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [historyPage, setHistoryPage] = React.useState(1);
+  const itemsPerPage = 5;
+
+  const currentItems = [
+    ...pending.map((b) => ({ ...b, isPending: true })),
+    ...activeToday.map((b) => ({ ...b, isPending: false }))
+  ];
+
+  const totalCurrentPages = Math.ceil(currentItems.length / itemsPerPage);
+  const paginatedCurrent = currentItems.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const totalHistoryPages = Math.ceil(decided.length / itemsPerPage);
+  const paginatedHistory = decided.slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage);
+
+  React.useEffect(() => {
+    if (currentPage > totalCurrentPages && totalCurrentPages > 0) {
+      setCurrentPage(totalCurrentPages);
+    }
+  }, [currentItems.length, totalCurrentPages, currentPage]);
+
+  React.useEffect(() => {
+    if (historyPage > totalHistoryPages && totalHistoryPages > 0) {
+      setHistoryPage(totalHistoryPages);
+    }
+  }, [decided.length, totalHistoryPages, historyPage]);
 
   return (
     <section className="active">
@@ -200,155 +229,401 @@ export default function ApprovalsPage() {
       <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.6fr 1fr", gap: "32px", alignItems: "start" }}>
         {/* Left Column: Pending and Active */}
         <div>
-          <h3 style={{ fontSize: "1rem", fontWeight: 600, color: "#111827", marginBottom: "16px" }}>Pending Requests</h3>
+          <h3 style={{ fontSize: "1rem", fontWeight: 600, color: "#111827", marginBottom: "16px" }}>Pending & Active Requests</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            {pending.map((b) => {
+            {paginatedCurrent.map((b) => {
               const c = cars.find((car) => car.id === b.carId);
-              return (
-                <div
-                  key={b.id}
-                  style={{
-                    background: "#F9FAFB",
-                    borderRadius: "16px",
-                    padding: "24px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "16px"
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div
-                        style={{
-                          width: "40px",
-                          height: "40px",
-                          borderRadius: "50%",
-                          background: b.co === "Tractrac" ? "var(--tt-soft)" : b.co === "Ikore" ? "var(--ik-soft)" : "var(--ch-soft)",
-                          color: b.co === "Tractrac" ? "var(--tt-dark)" : b.co === "Ikore" ? "var(--ik-dark)" : "var(--ch-dark)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: 600,
-                          fontSize: "1rem"
-                        }}
-                      >
-                        {b.staff[0]}
-                      </div>
-                      <div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span style={{ fontWeight: 600, fontSize: "0.95rem", color: "#111827" }}>{b.staff}</span>
-                          <span className={`co-chip ${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"}`}>
-                            {b.co === "Tractrac" ? "TracTrac" : b.co === "Ikore" ? "Ikore" : "ChananHill"}
-                          </span>
-                        </div>
-                        <div style={{ fontSize: "0.75rem", color: "#6B7280", marginTop: "2px" }}>
-                          Department: {b.dept || "None"}
-                        </div>
-                      </div>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: "0.7rem",
-                        fontWeight: 600,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                        borderRadius: "999px",
-                        padding: "4px 12px",
-                        background: "#FEF3C7",
-                        color: "#D97706"
-                      }}
-                    >
-                      Pending
-                    </span>
-                  </div>
-
-                  {/* Inner Details Panel (white block) */}
+              if (b.isPending) {
+                return (
                   <div
+                    key={b.id}
                     style={{
-                      background: "#FFFFFF",
-                      borderRadius: "12px",
-                      padding: "16px 20px",
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: "16px 24px"
+                      background: "#F9FAFB",
+                      borderRadius: "16px",
+                      padding: "24px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "16px"
                     }}
                   >
-                    <div>
-                      <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Vehicle / Mode</div>
-                      <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
-                        {isOfficeTrip(b) && c ? `${c.plate} - ${c.name}` : b.mode || "Office car"}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Destination</div>
-                      <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
-                        {b.dest || "No destination given"}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Date & Time</div>
-                      <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
-                        {b.date === todayISO ? "Today" : b.date}, {b.start} - {b.end}
-                      </div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Driver</div>
-                      <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
-                        {b.driver}
-                      </div>
-                    </div>
-                    {b.purpose && (
-                      <div style={{ gridColumn: "span 2" }}>
-                        <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Purpose</div>
-                        <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
-                          {b.purpose}
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div
+                          style={{
+                            width: "40px",
+                            height: "40px",
+                            borderRadius: "50%",
+                            background: b.co === "Tractrac" ? "var(--tt-soft)" : b.co === "Ikore" ? "var(--ik-soft)" : "var(--ch-soft)",
+                            color: b.co === "Tractrac" ? "var(--tt-dark)" : b.co === "Ikore" ? "var(--ik-dark)" : "var(--ch-dark)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 600,
+                            fontSize: "1rem"
+                          }}
+                        >
+                          {b.staff[0]}
+                        </div>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontWeight: 600, fontSize: "0.95rem", color: "#111827" }}>{b.staff}</span>
+                            <span className={`co-chip ${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"}`}>
+                              {b.co === "Tractrac" ? "TracTrac" : b.co === "Ikore" ? "Ikore" : "ChananHill"}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "#6B7280", marginTop: "2px" }}>
+                            Department: {b.dept || "None"}
+                          </div>
                         </div>
                       </div>
-                    )}
-                    <div style={{ gridColumn: "span 2", paddingTop: "12px", borderTop: "1px solid #F3F4F6", display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#6B7280" }}>
-                      <span>Approver: <strong style={{ color: "#374151" }}>{b.manager}</strong></span>
-                      {b.adjustedBy && <span style={{ color: "#D97706", fontWeight: 500 }}>Adjusted by fleet manager</span>}
+                      <span
+                        style={{
+                          fontSize: "0.7rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          borderRadius: "999px",
+                          padding: "4px 12px",
+                          background: "#FEF3C7",
+                          color: "#D97706"
+                        }}
+                      >
+                        Pending
+                      </span>
                     </div>
-                  </div>
 
-                  <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
-                    <button
-                      onClick={() => handleApprove(b.id)}
+                    {/* Inner Details Panel (white block) */}
+                    <div
                       style={{
-                        flex: 1,
-                        background: "#16A34A",
-                        color: "#FFFFFF",
-                        border: "none",
-                        borderRadius: "8px",
-                        padding: "12px",
-                        fontWeight: 600,
-                        fontSize: "0.85rem",
-                        cursor: "pointer",
-                        transition: "background 0.2s"
+                        background: "#FFFFFF",
+                        borderRadius: "12px",
+                        padding: "16px 20px",
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "16px 24px"
                       }}
                     >
-                      Approve request
-                    </button>
-                    <button
-                      onClick={() => handleDecline(b.id)}
+                      <div>
+                        <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Vehicle / Mode</div>
+                        <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                          {isOfficeTrip(b) && c ? `${c.plate} - ${c.name}` : b.mode || "Office car"}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Destination</div>
+                        <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                          {b.dest || "No destination given"}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Date & Time</div>
+                        <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                          {b.date === todayISO ? "Today" : b.date}, {b.start} - {b.end}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Driver</div>
+                        <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                          {b.driver}
+                        </div>
+                      </div>
+                      {b.purpose && (
+                        <div style={{ gridColumn: "span 2" }}>
+                          <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Purpose</div>
+                          <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                            {b.purpose}
+                          </div>
+                        </div>
+                      )}
+                      <div style={{ gridColumn: "span 2", paddingTop: "12px", borderTop: "1px solid #F3F4F6", display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#6B7280" }}>
+                        <span>Approver: <strong style={{ color: "#374151" }}>{b.manager}</strong></span>
+                        {b.adjustedBy && <span style={{ color: "#D97706", fontWeight: 500 }}>Adjusted by fleet manager</span>}
+                      </div>
+                    </div>
+
+                    <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
+                      <button
+                        onClick={() => handleApprove(b.id)}
+                        style={{
+                          flex: 1,
+                          background: "#16A34A",
+                          color: "#FFFFFF",
+                          border: "none",
+                          borderRadius: "8px",
+                          padding: "12px",
+                          fontWeight: 600,
+                          fontSize: "0.85rem",
+                          cursor: "pointer",
+                          transition: "background 0.2s"
+                        }}
+                      >
+                        Approve request
+                      </button>
+                      <button
+                        onClick={() => handleDecline(b.id)}
+                        style={{
+                          background: "#F3F4F6",
+                          color: "#DC2626",
+                          border: "none",
+                          borderRadius: "8px",
+                          padding: "12px 24px",
+                          fontWeight: 600,
+                          fontSize: "0.85rem",
+                          cursor: "pointer",
+                          transition: "background 0.2s"
+                        }}
+                      >
+                        Decline
+                      </button>
+                    </div>
+
+                    {isAdminUser && (
+                      <details style={{ marginTop: "12px", borderTop: "none" }} className="adj">
+                        <summary style={{ fontSize: "0.78rem", fontWeight: 600, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", padding: "8px 0" }}>
+                          Fleet manager - adjust this trip
+                        </summary>
+                        <div style={{ background: "#FFFFFF", borderRadius: "12px", padding: "16px", marginTop: "8px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                          <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
+                            <div>
+                              <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Trip mode</label>
+                              <Dropdown
+                                options={modeOptions}
+                                value={b.mode || "Office car"}
+                                onChange={(val) => handleSaveAdjustment(b.id, { mode: val })}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Vehicle (office car trips)</label>
+                              <Dropdown
+                                options={carOptions}
+                                value={b.carId}
+                                disabled={!!(b.mode && b.mode !== "Office car")}
+                                onChange={(val) => handleSaveAdjustment(b.id, { carId: Number(val) })}
+                              />
+                            </div>
+                          </div>
+                          <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
+                            <div>
+                              <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Driver</label>
+                              <Dropdown
+                                options={driverOptions}
+                                value={b.driver}
+                                onChange={(val) => handleSaveAdjustment(b.id, { driver: val })}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Timing</label>
+                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                                <input
+                                  type="time"
+                                  value={b.start}
+                                  style={{
+                                    border: "none",
+                                    background: "#F3F4F6",
+                                    borderRadius: "8px",
+                                    padding: "10px 12px",
+                                    fontSize: "0.85rem",
+                                    outline: "none",
+                                    color: "#1F2937",
+                                    width: "100%"
+                                  }}
+                                  onChange={(e) =>
+                                    handleSaveAdjustment(b.id, { start: e.target.value })
+                                  }
+                                />
+                                <input
+                                  type="time"
+                                  value={b.end}
+                                  style={{
+                                    border: "none",
+                                    background: "#F3F4F6",
+                                    borderRadius: "8px",
+                                    padding: "10px 12px",
+                                    fontSize: "0.85rem",
+                                    outline: "none",
+                                    color: "#1F2937",
+                                    width: "100%"
+                                  }}
+                                  onChange={(e) =>
+                                    handleSaveAdjustment(b.id, { end: e.target.value })
+                                  }
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
+                            <div>
+                              <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Ride / hire cost (₦)</label>
+                              <input
+                                type="number"
+                                placeholder="e.g. 4500"
+                                value={b.cost || ""}
+                                style={{
+                                  border: "none",
+                                  background: "#F3F4F6",
+                                  borderRadius: "8px",
+                                  padding: "10px 12px",
+                                  fontSize: "0.85rem",
+                                  outline: "none",
+                                  color: "#1F2937",
+                                  width: "100%"
+                                }}
+                                onChange={(e) =>
+                                  handleSaveAdjustment(b.id, { cost: Number(e.target.value) })
+                                }
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Upload receipt</label>
+                              <input
+                                type="file"
+                                accept="image/*,.pdf"
+                                style={{
+                                  border: "none",
+                                  background: "#F3F4F6",
+                                  borderRadius: "8px",
+                                  padding: "8px 12px",
+                                  fontSize: "0.85rem",
+                                  outline: "none",
+                                  color: "#1F2937",
+                                  width: "100%"
+                                }}
+                                onChange={(e) => {
+                                    const f = e.target.files?.[0];
+                                    if (f) {
+                                      handleSaveAdjustment(b.id, {
+                                        receiptName: f.name,
+                                        receiptURL: URL.createObjectURL(f)
+                                      });
+                                    }
+                                }}
+                              />
+                              {b.receiptName && (
+                                <div style={{ fontSize: "0.72rem", color: "#6B7280", marginTop: "4px" }}>On file: {b.receiptName}</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </details>
+                    )}
+                  </div>
+                );
+              } else {
+                return (
+                  <div
+                    key={b.id}
+                    style={{
+                      background: "#F9FAFB",
+                      borderRadius: "16px",
+                      padding: "24px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "16px"
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div
+                          style={{
+                            width: "40px",
+                            height: "40px",
+                            borderRadius: "50%",
+                            background: b.co === "Tractrac" ? "var(--tt-soft)" : b.co === "Ikore" ? "var(--ik-soft)" : "var(--ch-soft)",
+                            color: b.co === "Tractrac" ? "var(--tt-dark)" : b.co === "Ikore" ? "var(--ik-dark)" : "var(--ch-dark)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: 600,
+                            fontSize: "1rem"
+                          }}
+                        >
+                          {b.staff[0]}
+                        </div>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                            <span style={{ fontWeight: 600, fontSize: "0.95rem", color: "#111827" }}>{b.staff}</span>
+                            <span className={`co-chip ${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"}`}>
+                              {b.co === "Tractrac" ? "TracTrac" : b.co === "Ikore" ? "Ikore" : "ChananHill"}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: "0.75rem", color: "#6B7280", marginTop: "2px" }}>
+                            Department: {b.dept || "None"}
+                          </div>
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          fontSize: "0.7rem",
+                          fontWeight: 600,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          borderRadius: "999px",
+                          padding: "4px 12px",
+                          background: "#DCFCE7",
+                          color: "#16A34A"
+                        }}
+                      >
+                        Approved
+                      </span>
+                    </div>
+
+                    {/* Inner Details Panel (white block) */}
+                    <div
                       style={{
-                        background: "#F3F4F6",
-                        color: "#DC2626",
-                        border: "none",
-                        borderRadius: "8px",
-                        padding: "12px 24px",
-                        fontWeight: 600,
-                        fontSize: "0.85rem",
-                        cursor: "pointer",
-                        transition: "background 0.2s"
+                        background: "#FFFFFF",
+                        borderRadius: "12px",
+                        padding: "16px 20px",
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "16px 24px"
                       }}
                     >
-                      Decline
-                    </button>
-                  </div>
+                      <div>
+                        <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Vehicle / Mode</div>
+                        <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                          {isOfficeTrip(b) && c ? `${c.plate} - ${c.name}` : b.mode || "Office car"}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Destination</div>
+                        <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                          {b.dest || "No destination given"}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Date & Time</div>
+                        <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                          {b.date === todayISO ? "Today" : b.date}, {b.start} - {b.end}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Driver</div>
+                        <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                          {b.driver}
+                        </div>
+                      </div>
+                      {b.endOdo ? (
+                        <div style={{ gridColumn: "span 2" }}>
+                          <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Distance Covered</div>
+                          <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                            {fmtN(b.endOdo - (b.startOdo || 0))} km covered ({fmtN(b.startOdo || 0)} to {fmtN(b.endOdo)} km)
+                          </div>
+                        </div>
+                      ) : b.startOdo ? (
+                        <div style={{ gridColumn: "span 2" }}>
+                          <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Trip status</div>
+                          <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#D97706", marginTop: "4px" }}>
+                            In progress from {fmtN(b.startOdo)} km
+                          </div>
+                        </div>
+                      ) : null}
+                      <div style={{ gridColumn: "span 2", paddingTop: "12px", borderTop: "1px solid #F3F4F6", display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#6B7280" }}>
+                        <span>Approver: <strong style={{ color: "#374151" }}>{b.manager}</strong></span>
+                        {b.adjustedBy && <span style={{ color: "#D97706", fontWeight: 500 }}>Adjusted by fleet manager</span>}
+                      </div>
+                    </div>
 
-                  {isAdminUser && (
-                    <details style={{ marginTop: "12px", borderTop: "none" }} className="adj">
+                    <details style={{ borderTop: "none" }} className="adj">
                       <summary style={{ fontSize: "0.78rem", fontWeight: 600, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", padding: "8px 0" }}>
                         Fleet manager - adjust this trip
                       </summary>
@@ -475,272 +750,55 @@ export default function ApprovalsPage() {
                         </div>
                       </div>
                     </details>
-                  )}
-                </div>
-              );
+                  </div>
+                );
+              }
             })}
             
-            {pending.length === 0 && (
+            {currentItems.length === 0 && (
               <div style={{ padding: "40px", background: "#FAFBFB", borderRadius: "12px", textAlign: "center", color: "#6B7280", fontSize: "0.88rem" }}>
                 No requests waiting for you. New booking requests naming you as approver will appear here.
               </div>
             )}
           </div>
 
-          {/* Active Today section */}
-          {isAdminUser && bookings.filter((b) => b.date === todayISO && b.status === "approved").length > 0 && (
-            <div style={{ marginTop: "40px" }}>
-              <h3 style={{ fontSize: "1rem", fontWeight: 600, color: "#111827", marginBottom: "16px" }}>Active Today</h3>
-              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-                {bookings
-                  .filter((b) => b.date === todayISO && b.status === "approved")
-                  .map((b) => {
-                    const c = cars.find((car) => car.id === b.carId);
-                    return (
-                      <div
-                        key={b.id}
-                        style={{
-                          background: "#F9FAFB",
-                          borderRadius: "16px",
-                          padding: "24px",
-                          display: "flex",
-                          flexDirection: "column",
-                          gap: "16px"
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                            <div
-                              style={{
-                                width: "40px",
-                                height: "40px",
-                                borderRadius: "50%",
-                                background: b.co === "Tractrac" ? "var(--tt-soft)" : b.co === "Ikore" ? "var(--ik-soft)" : "var(--ch-soft)",
-                                color: b.co === "Tractrac" ? "var(--tt-dark)" : b.co === "Ikore" ? "var(--ik-dark)" : "var(--ch-dark)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontWeight: 600,
-                                fontSize: "1rem"
-                              }}
-                            >
-                              {b.staff[0]}
-                            </div>
-                            <div>
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                <span style={{ fontWeight: 600, fontSize: "0.95rem", color: "#111827" }}>{b.staff}</span>
-                                <span className={`co-chip ${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"}`}>
-                                  {b.co === "Tractrac" ? "TracTrac" : b.co === "Ikore" ? "Ikore" : "ChananHill"}
-                                </span>
-                              </div>
-                              <div style={{ fontSize: "0.75rem", color: "#6B7280", marginTop: "2px" }}>
-                                Department: {b.dept || "None"}
-                              </div>
-                            </div>
-                          </div>
-                          <span
-                            style={{
-                              fontSize: "0.7rem",
-                              fontWeight: 600,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.05em",
-                              borderRadius: "999px",
-                              padding: "4px 12px",
-                              background: "#DCFCE7",
-                              color: "#16A34A"
-                            }}
-                          >
-                            Approved
-                          </span>
-                        </div>
-
-                        {/* Inner Details Panel (white block) */}
-                        <div
-                          style={{
-                            background: "#FFFFFF",
-                            borderRadius: "12px",
-                            padding: "16px 20px",
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: "16px 24px"
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Vehicle / Mode</div>
-                            <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
-                              {isOfficeTrip(b) && c ? `${c.plate} - ${c.name}` : b.mode || "Office car"}
-                            </div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Destination</div>
-                            <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
-                              {b.dest || "No destination given"}
-                            </div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Date & Time</div>
-                            <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
-                              {b.date === todayISO ? "Today" : b.date}, {b.start} - {b.end}
-                            </div>
-                          </div>
-                          <div>
-                            <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Driver</div>
-                            <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
-                              {b.driver}
-                            </div>
-                          </div>
-                          {b.endOdo ? (
-                            <div style={{ gridColumn: "span 2" }}>
-                              <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Distance Covered</div>
-                              <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
-                                {fmtN(b.endOdo - (b.startOdo || 0))} km covered ({fmtN(b.startOdo || 0)} to {fmtN(b.endOdo)} km)
-                              </div>
-                            </div>
-                          ) : b.startOdo ? (
-                            <div style={{ gridColumn: "span 2" }}>
-                              <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Trip status</div>
-                              <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#D97706", marginTop: "4px" }}>
-                                In progress from {fmtN(b.startOdo)} km
-                              </div>
-                            </div>
-                          ) : null}
-                          <div style={{ gridColumn: "span 2", paddingTop: "12px", borderTop: "1px solid #F3F4F6", display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#6B7280" }}>
-                            <span>Approver: <strong style={{ color: "#374151" }}>{b.manager}</strong></span>
-                            {b.adjustedBy && <span style={{ color: "#D97706", fontWeight: 500 }}>Adjusted by fleet manager</span>}
-                          </div>
-                        </div>
-
-                        <details style={{ borderTop: "none" }} className="adj">
-                          <summary style={{ fontSize: "0.78rem", fontWeight: 600, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", padding: "8px 0" }}>
-                            Fleet manager - adjust this trip
-                          </summary>
-                          <div style={{ background: "#FFFFFF", borderRadius: "12px", padding: "16px", marginTop: "8px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                            <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
-                              <div>
-                                <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Trip mode</label>
-                                <Dropdown
-                                  options={modeOptions}
-                                  value={b.mode || "Office car"}
-                                  onChange={(val) => handleSaveAdjustment(b.id, { mode: val })}
-                                />
-                              </div>
-                              <div>
-                                <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Vehicle (office car trips)</label>
-                                <Dropdown
-                                  options={carOptions}
-                                  value={b.carId}
-                                  disabled={!!(b.mode && b.mode !== "Office car")}
-                                  onChange={(val) => handleSaveAdjustment(b.id, { carId: Number(val) })}
-                                />
-                              </div>
-                            </div>
-                            <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
-                              <div>
-                                <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Driver</label>
-                                <Dropdown
-                                  options={driverOptions}
-                                  value={b.driver}
-                                  onChange={(val) => handleSaveAdjustment(b.id, { driver: val })}
-                                />
-                              </div>
-                              <div>
-                                <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Timing</label>
-                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                                  <input
-                                    type="time"
-                                    value={b.start}
-                                    style={{
-                                      border: "none",
-                                      background: "#F3F4F6",
-                                      borderRadius: "8px",
-                                      padding: "10px 12px",
-                                      fontSize: "0.85rem",
-                                      outline: "none",
-                                      color: "#1F2937",
-                                      width: "100%"
-                                    }}
-                                    onChange={(e) =>
-                                      handleSaveAdjustment(b.id, { start: e.target.value })
-                                    }
-                                  />
-                                  <input
-                                    type="time"
-                                    value={b.end}
-                                    style={{
-                                      border: "none",
-                                      background: "#F3F4F6",
-                                      borderRadius: "8px",
-                                      padding: "10px 12px",
-                                      fontSize: "0.85rem",
-                                      outline: "none",
-                                      color: "#1F2937",
-                                      width: "100%"
-                                    }}
-                                    onChange={(e) =>
-                                      handleSaveAdjustment(b.id, { end: e.target.value })
-                                    }
-                                  />
-                                </div>
-                              </div>
-                            </div>
-                            <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
-                              <div>
-                                <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Ride / hire cost (₦)</label>
-                                <input
-                                  type="number"
-                                  placeholder="e.g. 4500"
-                                  value={b.cost || ""}
-                                  style={{
-                                    border: "none",
-                                    background: "#F3F4F6",
-                                    borderRadius: "8px",
-                                    padding: "10px 12px",
-                                    fontSize: "0.85rem",
-                                    outline: "none",
-                                    color: "#1F2937",
-                                    width: "100%"
-                                  }}
-                                  onChange={(e) =>
-                                    handleSaveAdjustment(b.id, { cost: Number(e.target.value) })
-                                  }
-                                />
-                              </div>
-                              <div>
-                                <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Upload receipt</label>
-                                <input
-                                  type="file"
-                                  accept="image/*,.pdf"
-                                  style={{
-                                    border: "none",
-                                    background: "#F3F4F6",
-                                    borderRadius: "8px",
-                                    padding: "8px 12px",
-                                    fontSize: "0.85rem",
-                                    outline: "none",
-                                    color: "#1F2937",
-                                    width: "100%"
-                                  }}
-                                  onChange={(e) => {
-                                      const f = e.target.files?.[0];
-                                      if (f) {
-                                        handleSaveAdjustment(b.id, {
-                                          receiptName: f.name,
-                                          receiptURL: URL.createObjectURL(f)
-                                        });
-                                      }
-                                  }}
-                                />
-                                {b.receiptName && (
-                                  <div style={{ fontSize: "0.72rem", color: "#6B7280", marginTop: "4px" }}>On file: {b.receiptName}</div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </details>
-                      </div>
-                    );
-                  })}
-              </div>
+          {totalCurrentPages > 1 && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "24px" }}>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+                style={{
+                  background: currentPage === 1 ? "#F3F4F6" : "#E5E7EB",
+                  color: currentPage === 1 ? "#9CA3AF" : "#1F2937",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "8px 16px",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  cursor: currentPage === 1 ? "not-allowed" : "pointer"
+                }}
+              >
+                Previous
+              </button>
+              <span style={{ fontSize: "0.85rem", color: "#4B5563" }}>
+                Page {currentPage} of {totalCurrentPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalCurrentPages))}
+                disabled={currentPage === totalCurrentPages}
+                style={{
+                  background: currentPage === totalCurrentPages ? "#F3F4F6" : "#E5E7EB",
+                  color: currentPage === totalCurrentPages ? "#9CA3AF" : "#1F2937",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "8px 16px",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  cursor: currentPage === totalCurrentPages ? "not-allowed" : "pointer"
+                }}
+              >
+                Next
+              </button>
             </div>
           )}
         </div>
@@ -749,7 +807,7 @@ export default function ApprovalsPage() {
         <div>
           <h3 style={{ fontSize: "1rem", fontWeight: 600, color: "#111827", marginBottom: "16px" }}>Recent Activity</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-            {decided.map((b) => {
+            {paginatedHistory.map((b) => {
               const c = cars.find((car) => car.id === b.carId);
               return (
                 <div
@@ -799,6 +857,46 @@ export default function ApprovalsPage() {
               </div>
             )}
           </div>
+
+          {totalHistoryPages > 1 && (
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "24px" }}>
+              <button
+                onClick={() => setHistoryPage((prev) => Math.max(prev - 1, 1))}
+                disabled={historyPage === 1}
+                style={{
+                  background: historyPage === 1 ? "#F3F4F6" : "#E5E7EB",
+                  color: historyPage === 1 ? "#9CA3AF" : "#1F2937",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "8px 16px",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  cursor: historyPage === 1 ? "not-allowed" : "pointer"
+                }}
+              >
+                Previous
+              </button>
+              <span style={{ fontSize: "0.85rem", color: "#4B5563" }}>
+                Page {historyPage} of {totalHistoryPages}
+              </span>
+              <button
+                onClick={() => setHistoryPage((prev) => Math.min(prev + 1, totalHistoryPages))}
+                disabled={historyPage === totalHistoryPages}
+                style={{
+                  background: historyPage === totalHistoryPages ? "#F3F4F6" : "#E5E7EB",
+                  color: historyPage === totalHistoryPages ? "#9CA3AF" : "#1F2937",
+                  border: "none",
+                  borderRadius: "8px",
+                  padding: "8px 16px",
+                  fontSize: "0.85rem",
+                  fontWeight: 600,
+                  cursor: historyPage === totalHistoryPages ? "not-allowed" : "pointer"
+                }}
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </section>
