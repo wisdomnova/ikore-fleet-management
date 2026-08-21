@@ -16,6 +16,7 @@ export default function StaffPage() {
     return STAFF.filter((s) => {
       if (staffFilter === "tt" && s.co !== "Tractrac") return false;
       if (staffFilter === "ik" && s.co !== "Ikore") return false;
+      if (staffFilter === "ch" && s.co !== "ChananHill") return false;
       if (staffFilter === "appr" && !s.approver) return false;
       if (staffFilter === "drv" && !DRIVER_NAMES.includes(s.name)) return false;
       if (staffQuery && !s.name.toLowerCase().includes(staffQuery.toLowerCase())) return false;
@@ -29,8 +30,8 @@ export default function StaffPage() {
         <h2 style={{ fontSize: "1.1rem", fontWeight: 500, color: "#111827", marginBottom: "10px" }}>Staff directory</h2>
         <p style={{ fontSize: "0.82rem", color: "#6B7280", lineHeight: 1.5, margin: 0 }}>
           {isAdminUser
-            ? "All TracTrac and Ikore staff loaded from the HR staff list. As fleet manager you can see each account's login details; in the live system passwords are set by staff and stored securely."
-            : "All TracTrac and Ikore staff loaded from the HR staff list. Everyone here can sign in and book vehicles; approvers are marked, and the fleet manager approves requests from both companies."}
+            ? "All TracTrac, Ikore and ChananHill staff loaded from the HR staff list. As fleet manager you can see each account's login details; in the live system passwords are set by staff and stored securely."
+            : "All TracTrac, Ikore and ChananHill staff loaded from the HR staff list. Everyone here can sign in and book vehicles; approvers are marked, and the fleet manager approves requests from all companies."}
         </p>
       </div>
 
@@ -54,6 +55,12 @@ export default function StaffPage() {
             onClick={() => setStaffFilter("ik")}
           >
             Ikore
+          </button>
+          <button
+            className={`chip ${staffFilter === "ch" ? "active" : ""}`}
+            onClick={() => setStaffFilter("ch")}
+          >
+            ChananHill
           </button>
           <button
             className={`chip ${staffFilter === "appr" ? "active" : ""}`}

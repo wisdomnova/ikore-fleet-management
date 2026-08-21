@@ -17,13 +17,13 @@ export default function VehiclesPage() {
 
   const [nvName, setNvName] = useState("");
   const [nvPlate, setNvPlate] = useState("");
-  const [nvCo, setNvCo] = useState<"Tractrac" | "Ikore">("Tractrac");
+  const [nvCo, setNvCo] = useState<"Tractrac" | "Ikore" | "ChananHill">("Tractrac");
   const [nvOdo, setNvOdo] = useState("");
   const [nvPapers, setNvPapers] = useState("");
   const [vehAddMsg, setVehAddMsg] = useState({ text: "", type: "" });
   const [isAddPending, setIsAddPending] = useState(false);
 
-  const [editFields, setEditFields] = useState<Record<number, { name: string; plate: string; co: "Tractrac" | "Ikore"; odo: number; papers: string; shop: boolean }>>({});
+  const [editFields, setEditFields] = useState<Record<number, { name: string; plate: string; co: "Tractrac" | "Ikore" | "ChananHill"; odo: number; papers: string; shop: boolean }>>({});
 
   const isAdminUser = currentUser?.name === "Godsfavour Nyoyoko";
 
@@ -211,10 +211,11 @@ export default function VehiclesPage() {
                     <label>Owning company</label>
                     <select
                       value={fields.co}
-                      onChange={(e) => setField(c.id, { co: e.target.value })}
+                      onChange={(e) => setField(c.id, { co: e.target.value as any })}
                     >
                       <option value="Tractrac">TracTrac</option>
                       <option value="Ikore">Ikore</option>
+                      <option value="ChananHill">ChananHill</option>
                     </select>
                   </div>
                   <div>
@@ -311,10 +312,11 @@ export default function VehiclesPage() {
                 <select
                   id="nvCo"
                   value={nvCo}
-                  onChange={(e) => setNvCo(e.target.value as "Tractrac" | "Ikore")}
+                  onChange={(e) => setNvCo(e.target.value as any)}
                 >
                   <option value="Tractrac">TracTrac</option>
                   <option value="Ikore">Ikore</option>
+                  <option value="ChananHill">ChananHill</option>
                 </select>
               </div>
               <div>

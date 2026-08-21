@@ -57,7 +57,7 @@ export default function MaintenancePage() {
 
   const carOptions = cars.map((c) => ({
     value: c.id,
-    label: `${c.plate !== "TBD" ? c.plate + " - " : ""}${c.name} (${c.co === "Tractrac" ? "TracTrac" : "Ikore"})`
+    label: `${c.plate !== "TBD" ? c.plate + " - " : ""}${c.name} (${c.co === "Tractrac" ? "TracTrac" : c.co === "Ikore" ? "Ikore" : "ChananHill"})`
   }));
 
   const severityOptions = [
@@ -276,8 +276,8 @@ export default function MaintenancePage() {
               <div className="info">
                 <strong>
                   <span className="plate">{c.plate}</span> {c.name}{" "}
-                  <span className={`co-chip ${c.co === "Tractrac" ? "tt" : "ik"}`}>
-                    {c.co === "Tractrac" ? "TracTrac" : "Ikore"}
+                  <span className={`co-chip ${c.co === "Tractrac" ? "tt" : c.co === "Ikore" ? "ik" : "ch"}`}>
+                    {c.co === "Tractrac" ? "TracTrac" : c.co === "Ikore" ? "Ikore" : "ChananHill"}
                   </span>
                 </strong>
                 <br />

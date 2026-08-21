@@ -28,7 +28,7 @@ export default function ApprovalsPage() {
 
   const carOptions = cars.map((car) => ({
     value: car.id,
-    label: `${car.plate !== "TBD" ? car.plate + " - " : ""}${car.name} (${car.co === "Tractrac" ? "TracTrac" : "Ikore"})${car.shop ? " - workshop" : ""}`
+    label: `${car.plate !== "TBD" ? car.plate + " - " : ""}${car.name} (${car.co === "Tractrac" ? "TracTrac" : car.co === "Ikore" ? "Ikore" : "ChananHill"})${car.shop ? " - workshop" : ""}`
   }));
 
   const driverOptions = [
@@ -195,8 +195,8 @@ export default function ApprovalsPage() {
               <div className="appr-top">
                 <span className="appr-title">
                   {b.staff}{" "}
-                  <span className={`co-chip ${b.co === "Tractrac" ? "tt" : "ik"}`}>
-                    {b.co === "Tractrac" ? "TracTrac" : "Ikore"}
+                  <span className={`co-chip ${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"}`}>
+                    {b.co === "Tractrac" ? "TracTrac" : b.co === "Ikore" ? "Ikore" : "ChananHill"}
                   </span>{" "}
                   <span style={{ color: "var(--muted)", fontWeight: 400 }}>requests</span>{" "}
                   {isOfficeTrip(b) && c ? `${c.plate} - ${c.name}` : ""}{" "}

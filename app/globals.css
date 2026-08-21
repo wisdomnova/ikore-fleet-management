@@ -62,6 +62,10 @@
   /* Ikore green */
   --ik-soft: #E1EFE7;
   --ik-dark: #0F4B2C;
+  --ch: #895129;
+  /* ChananHill brown */
+  --ch-soft: #F5EBE6;
+  --ch-dark: #5E3014;
   --amber: #E9A414;
   --amber-soft: #FBF0D6;
   --red: #C0442A;
@@ -128,6 +132,12 @@ textarea {
   border: 1px solid var(--ik);
 }
 
+.co-chip.ch {
+  background: var(--ch-soft);
+  color: var(--ch-dark);
+  border: 1px solid var(--ch);
+}
+
 .co-dot {
   display: inline-block;
   width: 9px;
@@ -143,6 +153,10 @@ textarea {
 
 .co-dot.ik {
   background: var(--ik);
+}
+
+.co-dot.ch {
+  background: var(--ch);
 }
 
 /* ---------- Header ---------- */
@@ -388,6 +402,12 @@ section.active {
   border-color: var(--ik);
   background: var(--ik-soft);
   color: var(--ik-dark);
+}
+
+.co-btn.ch.sel {
+  border-color: var(--ch);
+  background: var(--ch-soft);
+  color: var(--ch-dark);
 }
 
 .co-btn small {
@@ -641,6 +661,12 @@ section.active {
   color: var(--ik-dark);
 }
 
+.block.ch {
+  background: var(--ch-soft);
+  border: 1.5px solid var(--ch);
+  color: var(--ch-dark);
+}
+
 .block.pending {
   background: #F3F4F1;
   border-style: dashed;
@@ -653,6 +679,10 @@ section.active {
 
 .block.pending.ik {
   border-color: var(--ik);
+}
+
+.block.pending.ch {
+  border-color: var(--ch);
 }
 
 .block.shopblock {
@@ -705,6 +735,11 @@ section.active {
 .board-note .key.ik {
   background: var(--ik-soft);
   border: 1.5px solid var(--ik);
+}
+
+.board-note .key.ch {
+  background: var(--ch-soft);
+  border: 1.5px solid var(--ch);
 }
 
 /* ---------- Panels & forms ---------- */
@@ -1013,6 +1048,10 @@ td .co-chip {
 
 .drv-head.ik {
   background: var(--ik-dark);
+}
+
+.drv-head.ch {
+  background: var(--ch-dark);
 }
 
 .drv-avatar {
@@ -1820,6 +1859,12 @@ strong,
   color: #15803D;
 }
 
+.scheduler-booking-card.ch {
+  background: #FAF5F0;
+  border-color: #EDDEC9;
+  color: #895129;
+}
+
 .scheduler-booking-card.pending {
   background: #F9FAFB;
   border: 1.5px dashed #D1D5DB;
@@ -1896,6 +1941,10 @@ strong,
 
 .board-note .key.ik {
   background: #15803D;
+}
+
+.board-note .key.ch {
+  background: #1D4ED8;
 }
 
 /* Custom Dropdown Option styling */
