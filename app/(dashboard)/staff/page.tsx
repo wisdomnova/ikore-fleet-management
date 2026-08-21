@@ -119,7 +119,7 @@ export default function StaffPage() {
                 >
                   <td style={{ padding: "16px", fontSize: "0.85rem", color: "#111827" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span className={`co-dot ${s.co === "Tractrac" ? "tt" : "ik"}`} style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: s.co === "Tractrac" ? "#C2410C" : "#15803D" }}></span>
+                      <span className={`co-dot ${s.co === "Tractrac" ? "tt" : s.co === "Ikore" ? "ik" : "ch"}`} style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: s.co === "Tractrac" ? "#C2410C" : s.co === "Ikore" ? "#15803D" : "#895129" }}></span>
                       <span style={{ fontWeight: 400 }}>{s.name}</span>
                       {s.approver && (
                         <span
@@ -169,8 +169,8 @@ export default function StaffPage() {
                     </div>
                   </td>
                   <td style={{ padding: "16px", fontSize: "0.85rem" }}>
-                    <span className={`co-chip ${s.co === "Tractrac" ? "tt" : "ik"}`}>
-                      {s.co === "Tractrac" ? "TracTrac" : "Ikore"}
+                    <span className={`co-chip ${s.co === "Tractrac" ? "tt" : s.co === "Ikore" ? "ik" : "ch"}`}>
+                      {s.co === "Tractrac" ? "TracTrac" : s.co === "Ikore" ? "Ikore" : "ChananHill"}
                     </span>
                   </td>
                   <td style={{ padding: "16px", fontSize: "0.85rem", color: "#4B5563" }}>{s.designation || "-"}</td>
