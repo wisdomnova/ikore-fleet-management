@@ -145,7 +145,7 @@ export default function LocationsPage() {
                     Last check-in: {c.locT}
                   </div>
                   <div>
-                    {c.name} · <span className={`co-chip ${c.co === "Tractrac" ? "tt" : "ik"}`}>{c.co === "Tractrac" ? "TracTrac" : "Ikore"}</span> · Fuel {c.fuel}%
+                    {c.name} · <span className={`co-chip ${c.co === "Tractrac" ? "tt" : c.co === "Ikore" ? "ik" : "ch"}`}>{c.co === "Tractrac" ? "TracTrac" : c.co === "Ikore" ? "Ikore" : "ChananHill"}</span> · Fuel {c.fuel}%
                   </div>
                   {c.papers && (
                     <div style={{ color: "#D97706", fontWeight: 500, marginTop: "4px" }}>

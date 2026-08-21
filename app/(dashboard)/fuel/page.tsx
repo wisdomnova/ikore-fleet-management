@@ -30,7 +30,7 @@ export default function FuelLogPage() {
 
   const carOptions = cars.map((c) => ({
     value: c.id,
-    label: `${c.plate !== "TBD" ? c.plate + " - " : ""}${c.name} (${c.co === "Tractrac" ? "TracTrac" : "Ikore"})`
+    label: `${c.plate !== "TBD" ? c.plate + " - " : ""}${c.name} (${c.co === "Tractrac" ? "TracTrac" : c.co === "Ikore" ? "Ikore" : "ChananHill"})`
   }));
 
   const driverOptions = [

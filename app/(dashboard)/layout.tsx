@@ -24,7 +24,7 @@ export interface Staff {
   name: string;
   designation: string | null;
   dept: string | null;
-  co: "Tractrac" | "Ikore";
+  co: "Tractrac" | "Ikore" | "ChananHill";
   approver: boolean;
   user: string;
 }
@@ -33,7 +33,7 @@ export interface Car {
   id: number;
   plate: string;
   name: string;
-  co: "Tractrac" | "Ikore";
+  co: "Tractrac" | "Ikore" | "ChananHill";
   fuel: number;
   odo: number;
   loc: string;
@@ -50,7 +50,7 @@ export interface Booking {
   end: string;
   staff: string;
   dept: string;
-  co: "Tractrac" | "Ikore";
+  co: "Tractrac" | "Ikore" | "ChananHill";
   dest: string;
   driver: string;
   purpose: string;
@@ -80,7 +80,7 @@ export interface FuelLog {
 
 export interface Driver {
   name: string;
-  co: "Tractrac" | "Ikore";
+  co: "Tractrac" | "Ikore" | "ChananHill";
   phone: string;
   licence: string;
   licExp: string;
@@ -243,7 +243,10 @@ export const STAFF: Staff[] = [
   { "name": "Innocent Simon", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "innocent.simon" },
   { "name": "Joel Manaram Kwale", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "joel.kwale" },
   { "name": "Ibrahim Usman Liya", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "ibrahim.liya" },
-  { "name": "Kalejaiye Jumoke Christy", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "christy.kalejaiye" }
+  { "name": "Kalejaiye Jumoke Christy", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "christy.kalejaiye" },
+  { "name": "Martina Hembafan", "designation": null, "dept": null, "co": "ChananHill", "approver": false, "user": "martina.hembafan" },
+  { "name": "Alexandra Anebo", "designation": null, "dept": null, "co": "ChananHill", "approver": false, "user": "alexandra.anebor" },
+  { "name": "Dorcas Jidauna", "designation": null, "dept": null, "co": "ChananHill", "approver": false, "user": "dorcas.jidauna" }
 ];
 
 export const DRIVER_NAMES = ["Peter Agbo", "Ameh Friday", "Louis Ogbuneke"];

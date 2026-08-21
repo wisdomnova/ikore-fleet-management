@@ -172,8 +172,8 @@ export default function DriversPage() {
                       </strong>
                       <br />
                       {t.dest} · for {t.staff}{" "}
-                      <span className={`co-chip ${t.co === "Tractrac" ? "tt" : "ik"}`}>
-                        {t.co === "Tractrac" ? "TracTrac" : "Ikore"}
+                      <span className={`co-chip ${t.co === "Tractrac" ? "tt" : t.co === "Ikore" ? "ik" : "ch"}`}>
+                        {t.co === "Tractrac" ? "TracTrac" : t.co === "Ikore" ? "Ikore" : "ChananHill"}
                       </span>
                       {t.purpose && ` · ${t.purpose}`}
                     </div>
@@ -278,12 +278,12 @@ export default function DriversPage() {
 
           return (
             <div className="drv-card" key={d.name}>
-              <div className={`drv-head ${d.co === "Tractrac" ? "tt" : "ik"}`}>
+              <div className={`drv-head ${d.co === "Tractrac" ? "tt" : d.co === "Ikore" ? "ik" : "ch"}`}>
                 <div className="drv-avatar">{d.name[0]}</div>
                 <div>
                   <h3>{d.name}</h3>
                   <div className="role">
-                    {d.co === "Tractrac" ? "TracTrac" : "Ikore"} pool driver · {d.years} yrs experience
+                    {d.co === "Tractrac" ? "TracTrac" : d.co === "Ikore" ? "Ikore" : "ChananHill"} pool driver · {d.years} yrs experience
                   </div>
                 </div>
               </div>

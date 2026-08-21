@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { STAFF } from "../../(dashboard)/layout";
 import { API_BASE_URL } from "../../config";
 import { motion, AnimatePresence } from "framer-motion";
-import { IconLock, IconUser, IconBuildingStore, IconBuildingSkyscraper, IconArrowRight, IconEye, IconEyeOff } from "@tabler/icons-react";
+import { IconLock, IconUser, IconBuildingStore, IconBuildingSkyscraper, IconBuilding, IconArrowRight, IconEye, IconEyeOff } from "@tabler/icons-react";
 import Dropdown from "../../components/Dropdown";
 
 const DEFAULT_PW = "fleet123";
 
 export default function SignInPage() {
   const router = useRouter();
-  const [pickedCo, setPickedCo] = useState<"Tractrac" | "Ikore" | null>(null);
+  const [pickedCo, setPickedCo] = useState<"Tractrac" | "Ikore" | "ChananHill" | null>(null);
   const [loginStaff, setLoginStaff] = useState("");
   const [loginPw, setLoginPw] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -342,7 +342,7 @@ export default function SignInPage() {
               >
                 Choose company
               </label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: "12px" }}>
                 <button
                   type="button"
                   disabled={isPending}
@@ -390,6 +390,30 @@ export default function SignInPage() {
                 >
                   <IconBuildingSkyscraper size={18} stroke={1.5} />
                   Ikore
+                </button>
+                <button
+                  type="button"
+                  disabled={isPending}
+                  style={{
+                    border: pickedCo === "ChananHill" ? "1.5px solid var(--ch)" : "1.5px solid #E5E7EB",
+                    background: pickedCo === "ChananHill" ? "var(--ch-soft)" : "#FFFFFF",
+                    color: pickedCo === "ChananHill" ? "var(--ch-dark)" : "#4B5563",
+                    borderRadius: "10px",
+                    padding: "16px 12px",
+                    fontWeight: 500,
+                    fontSize: "0.85rem",
+                    cursor: isPending ? "not-allowed" : "pointer",
+                    opacity: isPending ? 0.6 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    outline: "none",
+                    transition: "all 0.2s"
+                  }}
+                  onClick={() => setPickedCo("ChananHill")}
+                >
+                  <IconBuilding size={18} stroke={1.5} />
+                  ChananHill
                 </button>
               </div>
             </div>

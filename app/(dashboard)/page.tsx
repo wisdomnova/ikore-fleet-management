@@ -319,7 +319,8 @@ export default function FleetBoardPage() {
       <div className="board-note" style={{ marginBottom: "20px", marginTop: "16px" }}>
         Bookings are coloured by company:
         <span className="key tt"></span>TracTrac
-        <span className="key ik"></span>Ikore. Dashed blocks are awaiting approval; the red line marks the current time. To request a new booking, select the "Book a car" tab.
+        <span className="key ik"></span>Ikore
+        <span className="key ch"></span>ChananHill. Dashed blocks are awaiting approval; the red line marks the current time. To request a new booking, select the "Book a car" tab.
       </div>
 
       {/* Mode warning if week car is in workshop */}
@@ -435,7 +436,7 @@ export default function FleetBoardPage() {
                             const endMin = mins(b.end);
                             const top = startMin - DAY_START * 60;
                             const height = endMin - startMin;
-                            const cls = `${b.co === "Tractrac" ? "tt" : "ik"} ${b.status === "pending" ? "pending" : ""}`;
+                            const cls = `${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"} ${b.status === "pending" ? "pending" : ""}`;
                             
                             blocks.push(
                               <motion.div
@@ -583,7 +584,7 @@ export default function FleetBoardPage() {
                             const endMin = mins(b.end);
                             const top = startMin - DAY_START * 60;
                             const height = endMin - startMin;
-                            const cls = `${b.co === "Tractrac" ? "tt" : "ik"} ${b.status === "pending" ? "pending" : ""}`;
+                            const cls = `${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"} ${b.status === "pending" ? "pending" : ""}`;
                             
                             blocks.push(
                               <motion.div
@@ -749,7 +750,7 @@ export default function FleetBoardPage() {
                               width: "6px",
                               height: "6px",
                               borderRadius: "50%",
-                              background: b.co === "Tractrac" ? "var(--tt)" : "var(--ik)",
+                              background: b.co === "Tractrac" ? "var(--tt)" : b.co === "Ikore" ? "var(--ik)" : "var(--ch)",
                               opacity: b.status === "pending" ? 0.5 : 1
                             }}
                           />
@@ -768,8 +769,8 @@ export default function FleetBoardPage() {
                         className="no-scrollbar"
                       >
                         {dayBookings.map((b) => {
-                          const bg = b.co === "Tractrac" ? "var(--tt-soft)" : "var(--ik-soft)";
-                          const color = b.co === "Tractrac" ? "var(--tt-dark)" : "var(--ik-dark)";
+                          const bg = b.co === "Tractrac" ? "var(--tt-soft)" : b.co === "Ikore" ? "var(--ik-soft)" : "var(--ch-soft)";
+                          const color = b.co === "Tractrac" ? "var(--tt-dark)" : b.co === "Ikore" ? "var(--ik-dark)" : "var(--ch-dark)";
                           const border = b.status === "pending" ? "1px dashed var(--muted)" : "1px solid transparent";
                           const c = cars.find((car) => car.id === b.carId);
                           
