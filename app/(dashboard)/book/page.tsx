@@ -22,6 +22,9 @@ export default function BookCarPage() {
 
   const todayISO = new Date().toISOString().slice(0, 10);
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const handleResize = () => {
@@ -31,6 +34,13 @@ export default function BookCarPage() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  const totalPages = Math.ceil(bookings.length / itemsPerPage);
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [bookings.length, totalPages, currentPage]);
 
   const [bkCar, setBkCar] = useState(1);
   const [bkDate, setBkDate] = useState(todayISO);
@@ -563,10 +573,10 @@ export default function BookCarPage() {
               </tr>
             </thead>
             <tbody>
-              {bookings
-                .slice()
-                .reverse()
-                .map((b) => {
+              {(() => {
+                const reversed = bookings.slice().reverse();
+                const paginated = reversed.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+                return paginated.map((b) => {
                   const c = cars.find((car) => car.id === b.carId);
                   const costBit = isAdminUser
                     ? `${b.cost ? `₦${fmtN(b.cost)}` : "cost pending"}${b.receiptName ? ` · receipt: ${b.receiptName}` : " · no receipt yet"}`
@@ -656,10 +666,51 @@ export default function BookCarPage() {
                       </td>
                     </tr>
                   );
-                })}
+                });
+              })()}
             </tbody>
           </table>
         </div>
+
+        {totalPages > 1 && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "24px" }}>
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              style={{
+                background: currentPage === 1 ? "#F3F4F6" : "#E5E7EB",
+                color: currentPage === 1 ? "#9CA3AF" : "#1F2937",
+                border: "none",
+                borderRadius: "8px",
+                padding: "8px 16px",
+                fontSize: "0.85rem",
+                fontWeight: 650,
+                cursor: currentPage === 1 ? "not-allowed" : "pointer"
+              }}
+            >
+              Previous
+            </button>
+            <span style={{ fontSize: "0.85rem", color: "#4B5563" }}>
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+              style={{
+                background: currentPage === totalPages ? "#F3F4F6" : "#E5E7EB",
+                color: currentPage === totalPages ? "#9CA3AF" : "#1F2937",
+                border: "none",
+                borderRadius: "8px",
+                padding: "8px 16px",
+                fontSize: "0.85rem",
+                fontWeight: 650,
+                cursor: currentPage === totalPages ? "not-allowed" : "pointer"
+              }}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
