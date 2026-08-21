@@ -18,6 +18,7 @@ import {
   IconMenu2,
   IconX
 } from "@tabler/icons-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 // ============================== TYPES ==============================
 export interface Staff {
@@ -266,6 +267,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [nextBookingId, setNextBookingId] = useState(9);
   const [nextIssueId, setNextIssueId] = useState(3);
   const [nextCarId, setNextCarId] = useState(6);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   // Responsive state checkers
   const [isMobile, setIsMobile] = useState(false);
@@ -418,8 +420,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [issueLogs, isLoaded]);
 
   const handleSignOut = () => {
+    setShowSignOutConfirm(true);
+  };
+
+  const confirmSignOut = () => {
+    localStorage.removeItem("fleet_currentUser");
     setCurrentUser(null);
-    router.push("/signin");
+    window.location.href = "/signin";
   };
 
   const isAdminUser = currentUser?.name === ADMIN_NAME || currentUser?.name === "Divine Wisdom";
@@ -625,8 +632,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     width: "36px",
                     height: "36px",
                     borderRadius: "50%",
-                    background: currentUser.co === "Tractrac" ? "var(--tt-soft)" : "var(--ik-soft)",
-                    color: currentUser.co === "Tractrac" ? "var(--tt-dark)" : "var(--ik-dark)",
+                    background: currentUser.co === "Tractrac" ? "var(--tt-soft)" : currentUser.co === "Ikore" ? "var(--ik-soft)" : "var(--ch-soft)",
+                    color: currentUser.co === "Tractrac" ? "var(--tt-dark)" : currentUser.co === "Ikore" ? "var(--ik-dark)" : "var(--ch-dark)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -641,7 +648,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {currentUser.name}
                   </div>
                   <div style={{ fontSize: "0.72rem", color: "#6B7280", marginTop: "1px" }}>
-                    {currentUser.co === "Tractrac" ? "TracTrac" : "Ikore"}
+                    {currentUser.co === "Tractrac" ? "TracTrac" : currentUser.co === "Ikore" ? "Ikore" : "ChananHill"}
                   </div>
                 </div>
               </div>
@@ -761,6 +768,79 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className={`toast ${showToast ? "show" : ""}`}>{toastMsg}</div>
+
+        <AnimatePresence>
+          {showSignOutConfirm && (
+            <div style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(30, 36, 31, 0.4)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 9999
+            }}>
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  background: "#FFFFFF",
+                  border: "1.5px solid #E5E7EB",
+                  borderRadius: "16px",
+                  padding: "24px",
+                  width: "90%",
+                  maxWidth: "400px",
+                  boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+                }}
+              >
+                <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "#111827", marginBottom: "8px" }}>Sign out?</h3>
+                <p style={{ fontSize: "0.85rem", color: "#6B7280", lineHeight: 1.5, marginBottom: "20px" }}>
+                  Are you sure you want to sign out of the fleet management system?
+                </p>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowSignOutConfirm(false)}
+                    style={{
+                      background: "#FFFFFF",
+                      border: "1.5px solid #D1D5DB",
+                      borderRadius: "8px",
+                      padding: "8px 16px",
+                      fontSize: "0.85rem",
+                      fontWeight: 500,
+                      color: "#374151",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmSignOut}
+                    style={{
+                      background: "#DC2626",
+                      border: "none",
+                      borderRadius: "8px",
+                      padding: "8px 16px",
+                      fontSize: "0.85rem",
+                      fontWeight: 500,
+                      color: "#FFFFFF",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Sign out
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </FleetContext.Provider>
   );
