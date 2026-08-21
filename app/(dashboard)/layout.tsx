@@ -16,7 +16,8 @@ import {
   IconMapPin,
   IconLogout,
   IconMenu2,
-  IconX
+  IconX,
+  IconRefresh
 } from "@tabler/icons-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -419,6 +420,69 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     localStorage.setItem("fleet_issueLogs", JSON.stringify(issueLogs));
   }, [issueLogs, isLoaded]);
 
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    showToastMsg("Refreshing data...");
+
+    try {
+      const endpoints: Promise<any>[] = [];
+      const keys: string[] = [];
+
+      if (pathname === "/") {
+        endpoints.push(fetch(`${API_BASE_URL}/api/vehicles`), fetch(`${API_BASE_URL}/api/bookings`));
+        keys.push("cars", "bookings");
+      } else if (pathname === "/book") {
+        endpoints.push(fetch(`${API_BASE_URL}/api/vehicles`), fetch(`${API_BASE_URL}/api/bookings`));
+        keys.push("cars", "bookings");
+      } else if (pathname === "/approvals") {
+        endpoints.push(fetch(`${API_BASE_URL}/api/vehicles`), fetch(`${API_BASE_URL}/api/bookings`));
+        keys.push("cars", "bookings");
+      } else if (pathname === "/fuel") {
+        endpoints.push(fetch(`${API_BASE_URL}/api/vehicles`), fetch(`${API_BASE_URL}/api/fuel`));
+        keys.push("cars", "fuelLogs");
+      } else if (pathname === "/drivers") {
+        endpoints.push(fetch(`${API_BASE_URL}/api/bookings`));
+        keys.push("bookings");
+      } else if (pathname === "/maintenance") {
+        endpoints.push(fetch(`${API_BASE_URL}/api/vehicles`), fetch(`${API_BASE_URL}/api/maintenance`), fetch(`${API_BASE_URL}/api/issues`));
+        keys.push("cars", "maintLogs", "issueLogs");
+      } else if (pathname === "/vehicles") {
+        endpoints.push(fetch(`${API_BASE_URL}/api/vehicles`));
+        keys.push("cars");
+      } else if (pathname === "/locations") {
+        endpoints.push(fetch(`${API_BASE_URL}/api/vehicles`));
+        keys.push("cars");
+      }
+
+      if (endpoints.length > 0) {
+        const responses = await Promise.all(endpoints);
+        for (let i = 0; i < responses.length; i++) {
+          const res = responses[i];
+          const key = keys[i];
+          if (res.ok) {
+            const data = await res.json();
+            if (key === "cars") setCars(data);
+            else if (key === "bookings") setBookings(data);
+            else if (key === "fuelLogs") setFuelLogs(data);
+            else if (key === "maintLogs") setMaintLogs(data);
+            else if (key === "issueLogs") setIssueLogs(data);
+          }
+        }
+        showToastMsg("Data refreshed");
+      }
+    } catch (err) {
+      console.error("Failed to refresh data", err);
+      showToastMsg("Failed to refresh data");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const hasDynamicData = pathname !== "/staff";
+
   const handleSignOut = () => {
     setShowSignOutConfirm(true);
   };
@@ -751,16 +815,48 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </div>
 
-            {!isMobile && (
-              <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                <div style={{ background: "#F3F4F6", color: "#4B5563", fontSize: "0.8rem", fontWeight: 500, padding: "6px 12px", borderRadius: "20px" }}>
-                  {todayFormatted}
-                </div>
-                <div style={{ background: "#F3F4F6", color: "#4B5563", fontSize: "0.8rem", fontWeight: 500, padding: "6px 12px", borderRadius: "20px" }}>
-                  {clockStr}
-                </div>
-              </div>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              {!isMobile && (
+                <>
+                  <div style={{ background: "#F3F4F6", color: "#4B5563", fontSize: "0.8rem", fontWeight: 500, padding: "6px 12px", borderRadius: "20px" }}>
+                    {todayFormatted}
+                  </div>
+                  <div style={{ background: "#F3F4F6", color: "#4B5563", fontSize: "0.8rem", fontWeight: 500, padding: "6px 12px", borderRadius: "20px" }}>
+                    {clockStr}
+                  </div>
+                </>
+              )}
+              {hasDynamicData && (
+                <button
+                  type="button"
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  style={{
+                    background: "#2563EB",
+                    color: "#FFFFFF",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "8px 14px",
+                    borderRadius: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontWeight: 650,
+                    fontSize: "0.8rem",
+                    transition: "background 0.15s ease",
+                    outline: "none"
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#1D4ED8")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "#2563EB")}
+                >
+                  <IconRefresh
+                    size={16}
+                    className={isRefreshing ? "spin" : ""}
+                  />
+                  <span>Refresh</span>
+                </button>
+              )}
+            </div>
           </header>
 
           {/* Child Page Container */}
