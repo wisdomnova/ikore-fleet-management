@@ -308,7 +308,7 @@ export default function FleetBoardPage() {
               {viewMode === "month" && <option value="all">All Vehicles</option>}
               {cars.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.plate !== "TBD" ? c.plate + " - " : ""}{c.name} ({c.co === "Tractrac" ? "TracTrac" : "Ikore"})
+                  {c.plate !== "TBD" ? c.plate + " - " : ""}{c.name} ({c.co === "Tractrac" ? "TracTrac" : c.co === "Ikore" ? "Ikore" : "ChananHill"})
                 </option>
               ))}
             </select>
