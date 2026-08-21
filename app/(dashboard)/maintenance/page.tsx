@@ -428,6 +428,11 @@ export default function MaintenancePage() {
               })}
           </tbody>
         </table>
+        {issueLogs.length === 0 && (
+          <div style={{ padding: "40px", textAlign: "center", color: "#6B7280", fontSize: "0.88rem" }}>
+            No open or resolved issues reported yet.
+          </div>
+        )}
       </div>
 
       {/* LOG MAINTENANCE WORK */}
@@ -570,6 +575,11 @@ export default function MaintenancePage() {
               })}
           </tbody>
         </table>
+        {maintLogs.filter((s) => svcFilter === "all" || s.type === svcFilter).length === 0 && (
+          <div style={{ padding: "40px", textAlign: "center", color: "#6B7280", fontSize: "0.88rem" }}>
+            No maintenance records found.
+          </div>
+        )}
       </div>
     </section>
   );

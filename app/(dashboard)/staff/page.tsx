@@ -187,6 +187,11 @@ export default function StaffPage() {
             </tbody>
           </table>
         </div>
+        {getFilteredStaff().length === 0 && (
+          <div style={{ padding: "40px", textAlign: "center", color: "#6B7280", fontSize: "0.88rem" }}>
+            No staff members found matching your filters.
+          </div>
+        )}
       </div>
     </section>
   );

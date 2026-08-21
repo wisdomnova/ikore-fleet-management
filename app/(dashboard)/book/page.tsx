@@ -671,6 +671,11 @@ export default function BookCarPage() {
             </tbody>
           </table>
         </div>
+        {bookings.length === 0 && (
+          <div style={{ padding: "40px", textAlign: "center", color: "#6B7280", fontSize: "0.88rem" }}>
+            No booking requests found.
+          </div>
+        )}
 
         {totalPages > 1 && (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "24px" }}>
