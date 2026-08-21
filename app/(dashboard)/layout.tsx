@@ -242,7 +242,8 @@ export const STAFF: Staff[] = [
   { "name": "Mikailu Umar", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "mikailu.umar" },
   { "name": "Innocent Simon", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "innocent.simon" },
   { "name": "Joel Manaram Kwale", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "joel.kwale" },
-  { "name": "Ibrahim Usman Liya", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "ibrahim.liya" }
+  { "name": "Ibrahim Usman Liya", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "ibrahim.liya" },
+  { "name": "Kalejaiye Jumoke Christy", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "christy.kalejaiye" }
 ];
 
 export const DRIVER_NAMES = ["Peter Agbo", "Ameh Friday", "Louis Ogbuneke"];
