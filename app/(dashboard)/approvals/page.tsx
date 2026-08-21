@@ -4,6 +4,7 @@ import React from "react";
 import { useFleet, DRIVER_NAMES } from "../layout";
 import { API_BASE_URL } from "../../config";
 import Dropdown from "../../components/Dropdown";
+import { isBookingOnDate, getBookingDayTimes, getBookingDayTimesForVal, getOverlappingDates, mins } from "../../utils";
 
 const DAY_START = 8;
 const DAY_END = 22;
@@ -51,10 +52,6 @@ export default function ApprovalsPage() {
 
   const isOfficeTrip = (b: any) => !b.mode || b.mode === "Office car";
 
-  const mins = (t: string): number => {
-    const [h, m] = t.split(":").map(Number);
-    return h * 60 + m;
-  };
 
   const fmtN = (n: number): string => {
     return n.toLocaleString("en-NG");
@@ -131,19 +128,27 @@ export default function ApprovalsPage() {
     const finalMode = fields.mode !== undefined ? fields.mode : original.mode;
 
     if (!finalMode || finalMode === "Office car") {
-      const clash = bookings.find(
-        (x) =>
-          x.id !== id &&
-          x.carId === finalCarId &&
-          x.date === original.date &&
-          x.status !== "declined" &&
-          isOfficeTrip(x) &&
-          mins(finalStart) < mins(x.end) &&
-          mins(x.start) < mins(finalEnd)
-      );
+      const clash = bookings.find((x) => {
+        if (x.id === id || x.carId !== finalCarId || x.status === "declined" || !isOfficeTrip(x)) return false;
+        
+        const [start1, end1] = original.date.includes(" to ") ? original.date.split(" to ") : [original.date, original.date];
+        const [start2, end2] = x.date.includes(" to ") ? x.date.split(" to ") : [x.date, x.date];
+        
+        if (!(start1 <= end2 && start2 <= end1)) return false;
+        
+        const overlapDays = getOverlappingDates(start1, end1, start2, end2);
+        if (overlapDays.length > 1) return true;
+        if (overlapDays.length === 1) {
+          const targetDate = overlapDays[0];
+          const t1 = getBookingDayTimesForVal(start1, end1, finalStart, finalEnd, targetDate);
+          const t2 = getBookingDayTimes(x, targetDate);
+          return mins(t1.start) < mins(t2.end) && mins(t2.start) < mins(t1.end);
+        }
+        return false;
+      });
       if (clash) {
         const c = cars.find((car) => car.id === finalCarId);
-        showToastMsg(`${c?.name || "Vehicle"} is taken ${clash.start} - ${clash.end} (${clash.staff})`);
+        showToastMsg(`${c?.name || "Vehicle"} is taken during this period (${clash.staff})`);
         return;
       }
     }
@@ -184,7 +189,7 @@ export default function ApprovalsPage() {
   const mine = (b: any) => currentUser && (isAdminUser || b.manager === currentUser.name);
   
   const pending = bookings.filter((b) => b.status === "pending").filter(mine);
-  const activeToday = bookings.filter((b) => b.date === todayISO && b.status === "approved");
+  const activeToday = bookings.filter((b) => isBookingOnDate(b.date, todayISO) && b.status === "approved");
   const decided = bookings.filter((b) => b.status !== "pending" && b.decidedAt && mine(b)).reverse();
 
   const [currentPage, setCurrentPage] = React.useState(1);

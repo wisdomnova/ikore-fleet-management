@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useFleet } from "./layout";
 import { motion, AnimatePresence } from "framer-motion";
+import { isBookingOnDate, getBookingDayTimes } from "../utils";
 
 const DAY_START = 8;
 const DAY_END = 22;
@@ -86,7 +87,7 @@ export default function FleetBoardPage() {
     else shopCount++;
     if (c.fuel < 25) lowFuelCount++;
   });
-  const todaysBookings = bookings.filter((b) => b.date === todayISO && b.status === "approved").length;
+  const todaysBookings = bookings.filter((b) => isBookingOnDate(b.date, todayISO) && b.status === "approved").length;
   const pendingApprovals = bookings.filter((b) => b.status === "pending").length;
 
   const mins = (t: string) => {
@@ -430,10 +431,11 @@ export default function FleetBoardPage() {
                         );
                       } else {
                         bookings
-                          .filter((b) => b.carId === c.id && b.date === selectedDateISO && b.status !== "declined" && isOfficeTrip(b))
+                          .filter((b) => b.carId === c.id && isBookingOnDate(b.date, selectedDateISO) && b.status !== "declined" && isOfficeTrip(b))
                           .forEach((b) => {
-                            const startMin = mins(b.start);
-                            const endMin = mins(b.end);
+                            const { start: activeStart, end: activeEnd } = getBookingDayTimes(b, selectedDateISO);
+                            const startMin = mins(activeStart);
+                            const endMin = mins(activeEnd);
                             const top = startMin - DAY_START * 60;
                             const height = endMin - startMin;
                             const cls = `${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"} ${b.status === "pending" ? "pending" : ""}`;
@@ -446,10 +448,10 @@ export default function FleetBoardPage() {
                                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 transition={{ duration: 0.25, delay: idx * 0.03 }}
-                                title={`${b.start} - ${b.end} · ${b.staff} · ${b.dest}`}
+                                title={`${activeStart} - ${activeEnd} · ${b.staff} · ${b.dest}`}
                               >
                                 <span className="card-time">
-                                  {b.start} - {b.end}
+                                  {activeStart} - {activeEnd}
                                   {b.status === "pending" && " (pending)"}
                                 </span>
                                 <span className="card-staff">{b.staff}</span>
@@ -578,10 +580,11 @@ export default function FleetBoardPage() {
                         );
                       } else {
                         bookings
-                          .filter((b) => b.carId === selectedCarId && b.date === dayISO && b.status !== "declined" && isOfficeTrip(b))
+                          .filter((b) => b.carId === selectedCarId && isBookingOnDate(b.date, dayISO) && b.status !== "declined" && isOfficeTrip(b))
                           .forEach((b) => {
-                            const startMin = mins(b.start);
-                            const endMin = mins(b.end);
+                            const { start: activeStart, end: activeEnd } = getBookingDayTimes(b, dayISO);
+                            const startMin = mins(activeStart);
+                            const endMin = mins(activeEnd);
                             const top = startMin - DAY_START * 60;
                             const height = endMin - startMin;
                             const cls = `${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"} ${b.status === "pending" ? "pending" : ""}`;
@@ -594,10 +597,10 @@ export default function FleetBoardPage() {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.2 }}
-                                title={`${b.start} - ${b.end} · ${b.staff} · ${b.dest}`}
+                                title={`${activeStart} - ${activeEnd} · ${b.staff} · ${b.dest}`}
                               >
                                 <span className="card-time">
-                                  {b.start} - {b.end}
+                                  {activeStart} - {activeEnd}
                                   {b.status === "pending" && " (pending)"}
                                 </span>
                                 <span className="card-staff">{b.staff}</span>
@@ -678,9 +681,9 @@ export default function FleetBoardPage() {
                 const isDayToday = dayISO === todayISO;
                 
                 // Filter bookings for this day
-                const dayBookings = bookings.filter(
-                  (b) => (selectedCarId === "all" || b.carId === selectedCarId) && b.date === dayISO && b.status !== "declined"
-                );
+                 const dayBookings = bookings.filter(
+                   (b) => (selectedCarId === "all" || b.carId === selectedCarId) && isBookingOnDate(b.date, dayISO) && b.status !== "declined"
+                 );
                 
                 return (
                   <div
