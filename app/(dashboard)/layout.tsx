@@ -524,6 +524,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <img src="/tractrac.png" alt="TracTrac" style={{ height: "22px", width: "22px", objectFit: "contain" }} />
                 <span style={{ fontSize: "0.65rem", fontWeight: 600, color: "#D1D5DB" }}>×</span>
                 <img src="/ikore-icon.png" alt="Ikore" style={{ height: "22px", width: "22px", objectFit: "contain" }} />
+                <span style={{ fontSize: "0.65rem", fontWeight: 600, color: "#D1D5DB" }}>×</span>
+                <img src="/chananhill-logo.png" alt="ChananHill" style={{ height: "22px", width: "22px", objectFit: "contain" }} />
               </div>
               <div style={{ fontSize: "0.74rem", fontWeight: 500, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 Shared Operations

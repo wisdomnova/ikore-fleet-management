@@ -18,6 +18,16 @@ export default function ApprovalsPage() {
     showToastMsg
   } = useFleet();
 
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const todayISO = new Date().toISOString().slice(0, 10);
 
   const modeOptions = [
@@ -133,7 +143,7 @@ export default function ApprovalsPage() {
       );
       if (clash) {
         const c = cars.find((car) => car.id === finalCarId);
-        showToastMsg(`${c?.name || "Vehicle"} is taken ${clash.start}–${clash.end} (${clash.staff})`);
+        showToastMsg(`${c?.name || "Vehicle"} is taken ${clash.start} - ${clash.end} (${clash.staff})`);
         return;
       }
     }
@@ -178,288 +188,618 @@ export default function ApprovalsPage() {
   return (
     <section className="active">
       {/* Header Panel */}
-      <div style={{ background: "#FFFFFF", border: "1.5px solid #E5E7EB", borderRadius: "12px", padding: "28px", marginBottom: "32px" }}>
-        <h2 style={{ fontSize: "1.1rem", fontWeight: 400, color: "#111827", marginBottom: "10px" }}>Approvals</h2>
+      <div style={{ background: "#F9FAFB", borderRadius: "12px", padding: "28px", marginBottom: "32px" }}>
+        <h2 style={{ fontSize: "1.1rem", fontWeight: 500, color: "#111827", marginBottom: "10px" }}>Approvals</h2>
         <p style={{ fontSize: "0.82rem", color: "#6B7280", lineHeight: 1.5, margin: 0 }}>
           {isAdminUser
-            ? "As fleet manager you can see and decide every pending request across both companies, and you can adjust any trip - change the vehicle, driver, or timing, or move it to a car hire service or Bolt."
+            ? "As fleet manager you can see and decide every pending request across both companies, and you can adjust any trip: change the vehicle, driver, or timing, or move it to a car hire service or Bolt."
             : "Booking requests routed to you as an approver. Pending requests hold their slot on the fleet board (shown dashed) so the time cannot be double-booked while a decision is made."}
         </p>
       </div>
 
-      <div id="apprList">
-        {pending.map((b) => {
-          const c = cars.find((car) => car.id === b.carId);
-          return (
-            <div className="appr-card" key={b.id}>
-              <div className="appr-top">
-                <span className="appr-title">
-                  {b.staff}{" "}
-                  <span className={`co-chip ${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"}`}>
-                    {b.co === "Tractrac" ? "TracTrac" : b.co === "Ikore" ? "Ikore" : "ChananHill"}
-                  </span>{" "}
-                  <span style={{ color: "var(--muted)", fontWeight: 400 }}>requests</span>{" "}
-                  {isOfficeTrip(b) && c ? `${c.plate} - ${c.name}` : ""}{" "}
-                  {!isOfficeTrip(b) && (
-                    <span className={`mode-chip ${b.mode === "Bolt" ? "bolt" : "hire"}`}>
-                      {b.mode}
-                    </span>
-                  )}
-                </span>
-                <span className="status-pill pending">Pending</span>
-              </div>
-              <div className="appr-meta">
-                {b.date === todayISO ? "Today" : b.date}, {b.start}–{b.end} ·{" "}
-                {b.dest || "No destination given"} · {b.driver}
-                <br />
-                {b.purpose && `Purpose: ${b.purpose} · `}Department: {b.dept || "-"} · Approver:{" "}
-                <strong>{b.manager}</strong>
-                {b.adjustedBy && " · Adjusted by fleet manager"}
-              </div>
-              <div className="appr-actions">
-                <button className="btn small approve" onClick={() => handleApprove(b.id)}>
-                  Approve request
-                </button>
-                <button className="btn small ghost" onClick={() => handleDecline(b.id)}>
-                  Decline
-                </button>
-              </div>
-
-              {isAdminUser && (
-                <details className="adj">
-                  <summary>Fleet manager - adjust this trip</summary>
-                  <div className="frow">
-                    <div>
-                      <label>Trip mode</label>
-                      <Dropdown
-                        options={modeOptions}
-                        value={b.mode || "Office car"}
-                        onChange={(val) => handleSaveAdjustment(b.id, { mode: val })}
-                      />
-                    </div>
-                    <div>
-                      <label>Vehicle (office car trips)</label>
-                      <Dropdown
-                        options={carOptions}
-                        value={b.carId}
-                        disabled={!!(b.mode && b.mode !== "Office car")}
-                        onChange={(val) => handleSaveAdjustment(b.id, { carId: Number(val) })}
-                      />
-                    </div>
-                  </div>
-                  <div className="frow">
-                    <div>
-                      <label>Driver</label>
-                      <Dropdown
-                        options={driverOptions}
-                        value={b.driver}
-                        onChange={(val) => handleSaveAdjustment(b.id, { driver: val })}
-                      />
-                    </div>
-                    <div className="frow" style={{ marginBottom: 0, gap: "10px" }}>
-                      <div>
-                        <label>Start</label>
-                        <input
-                          type="time"
-                          value={b.start}
-                          onChange={(e) =>
-                            handleSaveAdjustment(b.id, { start: e.target.value })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label>End</label>
-                        <input
-                          type="time"
-                          value={b.end}
-                          onChange={(e) =>
-                            handleSaveAdjustment(b.id, { end: e.target.value })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="frow">
-                    <div>
-                      <label>Ride / hire cost (₦)</label>
-                      <input
-                        type="number"
-                        placeholder="e.g. 4500"
-                        value={b.cost || ""}
-                        onChange={(e) =>
-                          handleSaveAdjustment(b.id, { cost: Number(e.target.value) })
-                        }
-                      />
-                    </div>
-                    <div>
-                      <label>Upload receipt</label>
-                      <input
-                        type="file"
-                        accept="image/*,.pdf"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) {
-                            handleSaveAdjustment(b.id, {
-                              receiptName: f.name,
-                              receiptURL: URL.createObjectURL(f)
-                            });
-                          }
-                        }}
-                      />
-                      {b.receiptName && (
-                        <span className="adj-note">On file: {b.receiptName}</span>
-                      )}
-                    </div>
-                  </div>
-                </details>
-              )}
-            </div>
-          );
-        })}
-
-        {isAdminUser &&
-          bookings
-            .filter((b) => b.date === todayISO && b.status === "approved")
-            .map((b) => {
+      <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1.6fr 1fr", gap: "32px", alignItems: "start" }}>
+        {/* Left Column: Pending and Active */}
+        <div>
+          <h3 style={{ fontSize: "1rem", fontWeight: 600, color: "#111827", marginBottom: "16px" }}>Pending Requests</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+            {pending.map((b) => {
               const c = cars.find((car) => car.id === b.carId);
               return (
-                <div className="appr-card" style={{ borderLeftColor: "var(--line)" }} key={b.id}>
-                  <div className="appr-top">
-                    <span className="appr-title">
-                      {b.staff} - {isOfficeTrip(b) && c ? `${c.plate}, ` : ""}
-                      {b.start}–{b.end}{" "}
-                      <span className={`status-pill free`}>Approved</span>
+                <div
+                  key={b.id}
+                  style={{
+                    background: "#F9FAFB",
+                    borderRadius: "16px",
+                    padding: "24px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px"
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div
+                        style={{
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "50%",
+                          background: b.co === "Tractrac" ? "var(--tt-soft)" : b.co === "Ikore" ? "var(--ik-soft)" : "var(--ch-soft)",
+                          color: b.co === "Tractrac" ? "var(--tt-dark)" : b.co === "Ikore" ? "var(--ik-dark)" : "var(--ch-dark)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 600,
+                          fontSize: "1rem"
+                        }}
+                      >
+                        {b.staff[0]}
+                      </div>
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span style={{ fontWeight: 600, fontSize: "0.95rem", color: "#111827" }}>{b.staff}</span>
+                          <span className={`co-chip ${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"}`}>
+                            {b.co === "Tractrac" ? "TracTrac" : b.co === "Ikore" ? "Ikore" : "ChananHill"}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: "0.75rem", color: "#6B7280", marginTop: "2px" }}>
+                          Department: {b.dept || "None"}
+                        </div>
+                      </div>
+                    </div>
+                    <span
+                      style={{
+                        fontSize: "0.7rem",
+                        fontWeight: 600,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        borderRadius: "999px",
+                        padding: "4px 12px",
+                        background: "#FEF3C7",
+                        color: "#D97706"
+                      }}
+                    >
+                      Pending
                     </span>
                   </div>
-                  <div className="appr-meta">
-                    {b.dest} · Driver: {b.driver}
-                    {b.adjustedBy && " · Adjusted by fleet manager"}
-                    {b.endOdo ? (
-                      <span>
-                        {" "}
-                        · <strong>{fmtN(b.endOdo - (b.startOdo || 0))} km covered</strong> (
-                        {fmtN(b.startOdo || 0)} → {fmtN(b.endOdo)} km)
-                      </span>
-                    ) : b.startOdo ? (
-                      ` · In progress from ${fmtN(b.startOdo)} km`
-                    ) : null}
+
+                  {/* Inner Details Panel (white block) */}
+                  <div
+                    style={{
+                      background: "#FFFFFF",
+                      borderRadius: "12px",
+                      padding: "16px 20px",
+                      display: "grid",
+                      gridTemplateColumns: "1fr 1fr",
+                      gap: "16px 24px"
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Vehicle / Mode</div>
+                      <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                        {isOfficeTrip(b) && c ? `${c.plate} - ${c.name}` : b.mode || "Office car"}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Destination</div>
+                      <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                        {b.dest || "No destination given"}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Date & Time</div>
+                      <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                        {b.date === todayISO ? "Today" : b.date}, {b.start} - {b.end}
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Driver</div>
+                      <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                        {b.driver}
+                      </div>
+                    </div>
+                    {b.purpose && (
+                      <div style={{ gridColumn: "span 2" }}>
+                        <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Purpose</div>
+                        <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                          {b.purpose}
+                        </div>
+                      </div>
+                    )}
+                    <div style={{ gridColumn: "span 2", paddingTop: "12px", borderTop: "1px solid #F3F4F6", display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#6B7280" }}>
+                      <span>Approver: <strong style={{ color: "#374151" }}>{b.manager}</strong></span>
+                      {b.adjustedBy && <span style={{ color: "#D97706", fontWeight: 500 }}>Adjusted by fleet manager</span>}
+                    </div>
                   </div>
 
-                  <details className="adj">
-                    <summary>Fleet manager - adjust this trip</summary>
-                    <div className="frow">
-                      <div>
-                        <label>Trip mode</label>
-                        <Dropdown
-                          options={modeOptions}
-                          value={b.mode || "Office car"}
-                          onChange={(val) => handleSaveAdjustment(b.id, { mode: val })}
-                        />
-                      </div>
-                      <div>
-                        <label>Vehicle (office car trips)</label>
-                        <Dropdown
-                          options={carOptions}
-                          value={b.carId}
-                          disabled={!!(b.mode && b.mode !== "Office car")}
-                          onChange={(val) => handleSaveAdjustment(b.id, { carId: Number(val) })}
-                        />
-                      </div>
-                    </div>
-                    <div className="frow">
-                      <div>
-                        <label>Driver</label>
-                        <Dropdown
-                          options={driverOptions}
-                          value={b.driver}
-                          onChange={(val) => handleSaveAdjustment(b.id, { driver: val })}
-                        />
-                      </div>
-                      <div className="frow" style={{ marginBottom: 0, gap: "10px" }}>
-                        <div>
-                          <label>Start</label>
-                          <input
-                            type="time"
-                            value={b.start}
-                            onChange={(e) =>
-                              handleSaveAdjustment(b.id, { start: e.target.value })
-                            }
-                          />
+                  <div style={{ display: "flex", gap: "12px", marginTop: "8px" }}>
+                    <button
+                      onClick={() => handleApprove(b.id)}
+                      style={{
+                        flex: 1,
+                        background: "#16A34A",
+                        color: "#FFFFFF",
+                        border: "none",
+                        borderRadius: "8px",
+                        padding: "12px",
+                        fontWeight: 600,
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                        transition: "background 0.2s"
+                      }}
+                    >
+                      Approve request
+                    </button>
+                    <button
+                      onClick={() => handleDecline(b.id)}
+                      style={{
+                        background: "#F3F4F6",
+                        color: "#DC2626",
+                        border: "none",
+                        borderRadius: "8px",
+                        padding: "12px 24px",
+                        fontWeight: 600,
+                        fontSize: "0.85rem",
+                        cursor: "pointer",
+                        transition: "background 0.2s"
+                      }}
+                    >
+                      Decline
+                    </button>
+                  </div>
+
+                  {isAdminUser && (
+                    <details style={{ marginTop: "12px", borderTop: "none" }} className="adj">
+                      <summary style={{ fontSize: "0.78rem", fontWeight: 600, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", padding: "8px 0" }}>
+                        Fleet manager - adjust this trip
+                      </summary>
+                      <div style={{ background: "#FFFFFF", borderRadius: "12px", padding: "16px", marginTop: "8px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                        <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
+                          <div>
+                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Trip mode</label>
+                            <Dropdown
+                              options={modeOptions}
+                              value={b.mode || "Office car"}
+                              onChange={(val) => handleSaveAdjustment(b.id, { mode: val })}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Vehicle (office car trips)</label>
+                            <Dropdown
+                              options={carOptions}
+                              value={b.carId}
+                              disabled={!!(b.mode && b.mode !== "Office car")}
+                              onChange={(val) => handleSaveAdjustment(b.id, { carId: Number(val) })}
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <label>End</label>
-                          <input
-                            type="time"
-                            value={b.end}
-                            onChange={(e) =>
-                              handleSaveAdjustment(b.id, { end: e.target.value })
-                            }
-                          />
+                        <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
+                          <div>
+                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Driver</label>
+                            <Dropdown
+                              options={driverOptions}
+                              value={b.driver}
+                              onChange={(val) => handleSaveAdjustment(b.id, { driver: val })}
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Timing</label>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                              <input
+                                type="time"
+                                value={b.start}
+                                style={{
+                                  border: "none",
+                                  background: "#F3F4F6",
+                                  borderRadius: "8px",
+                                  padding: "10px 12px",
+                                  fontSize: "0.85rem",
+                                  outline: "none",
+                                  color: "#1F2937",
+                                  width: "100%"
+                                }}
+                                onChange={(e) =>
+                                  handleSaveAdjustment(b.id, { start: e.target.value })
+                                }
+                              />
+                              <input
+                                type="time"
+                                value={b.end}
+                                style={{
+                                  border: "none",
+                                  background: "#F3F4F6",
+                                  borderRadius: "8px",
+                                  padding: "10px 12px",
+                                  fontSize: "0.85rem",
+                                  outline: "none",
+                                  color: "#1F2937",
+                                  width: "100%"
+                                }}
+                                onChange={(e) =>
+                                  handleSaveAdjustment(b.id, { end: e.target.value })
+                                }
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
+                          <div>
+                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Ride / hire cost (₦)</label>
+                            <input
+                              type="number"
+                              placeholder="e.g. 4500"
+                              value={b.cost || ""}
+                              style={{
+                                border: "none",
+                                background: "#F3F4F6",
+                                borderRadius: "8px",
+                                padding: "10px 12px",
+                                fontSize: "0.85rem",
+                                outline: "none",
+                                color: "#1F2937",
+                                width: "100%"
+                              }}
+                              onChange={(e) =>
+                                handleSaveAdjustment(b.id, { cost: Number(e.target.value) })
+                              }
+                            />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Upload receipt</label>
+                            <input
+                              type="file"
+                              accept="image/*,.pdf"
+                              style={{
+                                border: "none",
+                                background: "#F3F4F6",
+                                borderRadius: "8px",
+                                padding: "8px 12px",
+                                fontSize: "0.85rem",
+                                outline: "none",
+                                color: "#1F2937",
+                                width: "100%"
+                              }}
+                              onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) {
+                                    handleSaveAdjustment(b.id, {
+                                      receiptName: f.name,
+                                      receiptURL: URL.createObjectURL(f)
+                                    });
+                                  }
+                              }}
+                            />
+                            {b.receiptName && (
+                              <div style={{ fontSize: "0.72rem", color: "#6B7280", marginTop: "4px" }}>On file: {b.receiptName}</div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="frow">
-                      <div>
-                        <label>Ride / hire cost (₦)</label>
-                        <input
-                          type="number"
-                          placeholder="e.g. 4500"
-                          value={b.cost || ""}
-                          onChange={(e) =>
-                            handleSaveAdjustment(b.id, { cost: Number(e.target.value) })
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label>Upload receipt</label>
-                        <input
-                          type="file"
-                          accept="image/*,.pdf"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) {
-                              handleSaveAdjustment(b.id, {
-                                receiptName: f.name,
-                                receiptURL: URL.createObjectURL(f)
-                              });
-                            }
+                    </details>
+                  )}
+                </div>
+              );
+            })}
+            
+            {pending.length === 0 && (
+              <div style={{ padding: "40px", background: "#FAFBFB", borderRadius: "12px", textAlign: "center", color: "#6B7280", fontSize: "0.88rem" }}>
+                No requests waiting for you. New booking requests naming you as approver will appear here.
+              </div>
+            )}
+          </div>
+
+          {/* Active Today section */}
+          {isAdminUser && bookings.filter((b) => b.date === todayISO && b.status === "approved").length > 0 && (
+            <div style={{ marginTop: "40px" }}>
+              <h3 style={{ fontSize: "1rem", fontWeight: 600, color: "#111827", marginBottom: "16px" }}>Active Today</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                {bookings
+                  .filter((b) => b.date === todayISO && b.status === "approved")
+                  .map((b) => {
+                    const c = cars.find((car) => car.id === b.carId);
+                    return (
+                      <div
+                        key={b.id}
+                        style={{
+                          background: "#F9FAFB",
+                          borderRadius: "16px",
+                          padding: "24px",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "16px"
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                            <div
+                              style={{
+                                width: "40px",
+                                height: "40px",
+                                borderRadius: "50%",
+                                background: b.co === "Tractrac" ? "var(--tt-soft)" : b.co === "Ikore" ? "var(--ik-soft)" : "var(--ch-soft)",
+                                color: b.co === "Tractrac" ? "var(--tt-dark)" : b.co === "Ikore" ? "var(--ik-dark)" : "var(--ch-dark)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontWeight: 600,
+                                fontSize: "1rem"
+                              }}
+                            >
+                              {b.staff[0]}
+                            </div>
+                            <div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span style={{ fontWeight: 600, fontSize: "0.95rem", color: "#111827" }}>{b.staff}</span>
+                                <span className={`co-chip ${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"}`}>
+                                  {b.co === "Tractrac" ? "TracTrac" : b.co === "Ikore" ? "Ikore" : "ChananHill"}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: "0.75rem", color: "#6B7280", marginTop: "2px" }}>
+                                Department: {b.dept || "None"}
+                              </div>
+                            </div>
+                          </div>
+                          <span
+                            style={{
+                              fontSize: "0.7rem",
+                              fontWeight: 600,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.05em",
+                              borderRadius: "999px",
+                              padding: "4px 12px",
+                              background: "#DCFCE7",
+                              color: "#16A34A"
+                            }}
+                          >
+                            Approved
+                          </span>
+                        </div>
+
+                        {/* Inner Details Panel (white block) */}
+                        <div
+                          style={{
+                            background: "#FFFFFF",
+                            borderRadius: "12px",
+                            padding: "16px 20px",
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: "16px 24px"
                           }}
-                        />
-                        {b.receiptName && (
-                          <span className="adj-note">On file: {b.receiptName}</span>
-                        )}
+                        >
+                          <div>
+                            <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Vehicle / Mode</div>
+                            <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                              {isOfficeTrip(b) && c ? `${c.plate} - ${c.name}` : b.mode || "Office car"}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Destination</div>
+                            <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                              {b.dest || "No destination given"}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Date & Time</div>
+                            <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                              {b.date === todayISO ? "Today" : b.date}, {b.start} - {b.end}
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Driver</div>
+                            <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                              {b.driver}
+                            </div>
+                          </div>
+                          {b.endOdo ? (
+                            <div style={{ gridColumn: "span 2" }}>
+                              <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Distance Covered</div>
+                              <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
+                                {fmtN(b.endOdo - (b.startOdo || 0))} km covered ({fmtN(b.startOdo || 0)} to {fmtN(b.endOdo)} km)
+                              </div>
+                            </div>
+                          ) : b.startOdo ? (
+                            <div style={{ gridColumn: "span 2" }}>
+                              <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Trip status</div>
+                              <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#D97706", marginTop: "4px" }}>
+                                In progress from {fmtN(b.startOdo)} km
+                              </div>
+                            </div>
+                          ) : null}
+                          <div style={{ gridColumn: "span 2", paddingTop: "12px", borderTop: "1px solid #F3F4F6", display: "flex", justifyContent: "space-between", fontSize: "0.75rem", color: "#6B7280" }}>
+                            <span>Approver: <strong style={{ color: "#374151" }}>{b.manager}</strong></span>
+                            {b.adjustedBy && <span style={{ color: "#D97706", fontWeight: 500 }}>Adjusted by fleet manager</span>}
+                          </div>
+                        </div>
+
+                        <details style={{ borderTop: "none" }} className="adj">
+                          <summary style={{ fontSize: "0.78rem", fontWeight: 600, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", padding: "8px 0" }}>
+                            Fleet manager - adjust this trip
+                          </summary>
+                          <div style={{ background: "#FFFFFF", borderRadius: "12px", padding: "16px", marginTop: "8px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                            <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
+                              <div>
+                                <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Trip mode</label>
+                                <Dropdown
+                                  options={modeOptions}
+                                  value={b.mode || "Office car"}
+                                  onChange={(val) => handleSaveAdjustment(b.id, { mode: val })}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Vehicle (office car trips)</label>
+                                <Dropdown
+                                  options={carOptions}
+                                  value={b.carId}
+                                  disabled={!!(b.mode && b.mode !== "Office car")}
+                                  onChange={(val) => handleSaveAdjustment(b.id, { carId: Number(val) })}
+                                />
+                              </div>
+                            </div>
+                            <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
+                              <div>
+                                <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Driver</label>
+                                <Dropdown
+                                  options={driverOptions}
+                                  value={b.driver}
+                                  onChange={(val) => handleSaveAdjustment(b.id, { driver: val })}
+                                />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Timing</label>
+                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                                  <input
+                                    type="time"
+                                    value={b.start}
+                                    style={{
+                                      border: "none",
+                                      background: "#F3F4F6",
+                                      borderRadius: "8px",
+                                      padding: "10px 12px",
+                                      fontSize: "0.85rem",
+                                      outline: "none",
+                                      color: "#1F2937",
+                                      width: "100%"
+                                    }}
+                                    onChange={(e) =>
+                                      handleSaveAdjustment(b.id, { start: e.target.value })
+                                    }
+                                  />
+                                  <input
+                                    type="time"
+                                    value={b.end}
+                                    style={{
+                                      border: "none",
+                                      background: "#F3F4F6",
+                                      borderRadius: "8px",
+                                      padding: "10px 12px",
+                                      fontSize: "0.85rem",
+                                      outline: "none",
+                                      color: "#1F2937",
+                                      width: "100%"
+                                    }}
+                                    onChange={(e) =>
+                                      handleSaveAdjustment(b.id, { end: e.target.value })
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
+                              <div>
+                                <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Ride / hire cost (₦)</label>
+                                <input
+                                  type="number"
+                                  placeholder="e.g. 4500"
+                                  value={b.cost || ""}
+                                  style={{
+                                    border: "none",
+                                    background: "#F3F4F6",
+                                    borderRadius: "8px",
+                                    padding: "10px 12px",
+                                    fontSize: "0.85rem",
+                                    outline: "none",
+                                    color: "#1F2937",
+                                    width: "100%"
+                                  }}
+                                  onChange={(e) =>
+                                    handleSaveAdjustment(b.id, { cost: Number(e.target.value) })
+                                  }
+                                />
+                              </div>
+                              <div>
+                                <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Upload receipt</label>
+                                <input
+                                  type="file"
+                                  accept="image/*,.pdf"
+                                  style={{
+                                    border: "none",
+                                    background: "#F3F4F6",
+                                    borderRadius: "8px",
+                                    padding: "8px 12px",
+                                    fontSize: "0.85rem",
+                                    outline: "none",
+                                    color: "#1F2937",
+                                    width: "100%"
+                                  }}
+                                  onChange={(e) => {
+                                      const f = e.target.files?.[0];
+                                      if (f) {
+                                        handleSaveAdjustment(b.id, {
+                                          receiptName: f.name,
+                                          receiptURL: URL.createObjectURL(f)
+                                        });
+                                      }
+                                  }}
+                                />
+                                {b.receiptName && (
+                                  <div style={{ fontSize: "0.72rem", color: "#6B7280", marginTop: "4px" }}>On file: {b.receiptName}</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </details>
                       </div>
-                    </div>
-                  </details>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column: Recent Activity */}
+        <div>
+          <h3 style={{ fontSize: "1rem", fontWeight: 600, color: "#111827", marginBottom: "16px" }}>Recent Activity</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+            {decided.map((b) => {
+              const c = cars.find((car) => car.id === b.carId);
+              return (
+                <div
+                  key={b.id}
+                  style={{
+                    background: "#F9FAFB",
+                    borderRadius: "16px",
+                    padding: "20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "12px",
+                    opacity: 0.9
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                    <span style={{ fontWeight: 600, fontSize: "0.88rem", color: "#111827" }}>{b.staff}</span>
+                    <span
+                      style={{
+                        fontSize: "0.65rem",
+                        fontWeight: 650,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.05em",
+                        borderRadius: "999px",
+                        padding: "2px 10px",
+                        background: b.status === "approved" ? "#DCFCE7" : b.status === "declined" ? "#FEE2E2" : "#FEF3C7",
+                        color: b.status === "approved" ? "#16A34A" : b.status === "declined" ? "#DC2626" : "#D97706"
+                      }}
+                    >
+                      {b.status}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: "0.8rem", color: "#4B5563", lineHeight: 1.4 }}>
+                    {c?.plate ? `${c.plate} · ` : ""}{b.start} - {b.end}
+                  </div>
+
+                  <div style={{ fontSize: "0.72rem", color: "#9CA3AF", borderTop: "1px solid #F3F4F6", paddingTop: "8px" }}>
+                    Decided by {b.decidedBy || b.manager} at {b.decidedAt}
+                  </div>
                 </div>
               );
             })}
 
-        {decided.map((b) => {
-          const c = cars.find((car) => car.id === b.carId);
-          const label = { approved: "Approved", pending: "Pending", declined: "Declined" }[b.status];
-          const cls = { approved: "free", pending: "pending", declined: "declined" }[b.status];
-
-          return (
-            <div className="appr-card done" key={b.id}>
-              <div className="appr-top">
-                <span className="appr-title">
-                  {b.staff} - {c?.plate}, {b.start}–{b.end}
-                </span>
-                <span className={`status-pill ${cls}`}>{label}</span>
+            {decided.length === 0 && (
+              <div style={{ padding: "40px", background: "#FAFBFB", borderRadius: "12px", textAlign: "center", color: "#6B7280", fontSize: "0.88rem" }}>
+                No recent activity.
               </div>
-              <div className="appr-meta">
-                Decided by {b.decidedBy || b.manager} at {b.decidedAt}
-              </div>
-            </div>
-          );
-        })}
-
-        {pending.length === 0 && decided.length === 0 && (
-          <div className="appr-empty">
-            No requests waiting for you. New booking requests naming you as approver will appear here.
+            )}
           </div>
-        )}
+        </div>
       </div>
     </section>
   );
