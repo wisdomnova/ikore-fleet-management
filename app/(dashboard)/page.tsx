@@ -20,6 +20,18 @@ export default function FleetBoardPage() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedCarId, setSelectedCarId] = useState<number | "all">("all");
 
+  // Hover Tooltip State
+  const [hoveredBooking, setHoveredBooking] = useState<{
+    booking: any;
+    car?: any;
+    activeStart: string;
+    activeEnd: string;
+    durationMins: number;
+    dateLabel: string;
+    x: number;
+    y: number;
+  } | null>(null);
+
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const handleResize = () => {
@@ -437,8 +449,10 @@ export default function FleetBoardPage() {
                             const startMin = mins(activeStart);
                             const endMin = mins(activeEnd);
                             const top = startMin - DAY_START * 60;
-                            const height = endMin - startMin;
-                            const cls = `${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"} ${b.status === "pending" ? "pending" : ""}`;
+                            const durationMins = Math.max(1, endMin - startMin);
+                            const height = Math.max(22, durationMins);
+                            const isShort = height < 40;
+                            const cls = `${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"} ${b.status === "pending" ? "pending" : ""} ${isShort ? "is-short" : ""}`;
                             
                             blocks.push(
                               <motion.div
@@ -448,14 +462,36 @@ export default function FleetBoardPage() {
                                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
                                 transition={{ duration: 0.25, delay: idx * 0.03 }}
-                                title={`${activeStart} - ${activeEnd} · ${b.staff} · ${b.dest}`}
+                                onMouseEnter={(e) => {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setHoveredBooking({
+                                    booking: b,
+                                    car: c,
+                                    activeStart,
+                                    activeEnd,
+                                    durationMins,
+                                    dateLabel: selectedDate.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }),
+                                    x: rect.left + rect.width / 2,
+                                    y: rect.top
+                                  });
+                                }}
+                                onMouseLeave={() => setHoveredBooking(null)}
                               >
-                                <span className="card-time">
-                                  {activeStart} - {activeEnd}
-                                  {b.status === "pending" && " (pending)"}
-                                </span>
-                                <span className="card-staff">{b.staff}</span>
-                                <span className="card-dest">{b.dest}</span>
+                                {isShort ? (
+                                  <>
+                                    <span className="card-time">{activeStart}–{activeEnd}</span>
+                                    <span className="card-staff">{b.staff}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="card-time">
+                                      {activeStart} - {activeEnd}
+                                      {b.status === "pending" && " (pending)"}
+                                    </span>
+                                    <span className="card-staff">{b.staff}</span>
+                                    <span className="card-dest">{b.dest}</span>
+                                  </>
+                                )}
                               </motion.div>
                             );
                           });
@@ -586,8 +622,11 @@ export default function FleetBoardPage() {
                             const startMin = mins(activeStart);
                             const endMin = mins(activeEnd);
                             const top = startMin - DAY_START * 60;
-                            const height = endMin - startMin;
-                            const cls = `${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"} ${b.status === "pending" ? "pending" : ""}`;
+                            const durationMins = Math.max(1, endMin - startMin);
+                            const height = Math.max(22, durationMins);
+                            const isShort = height < 40;
+                            const cls = `${b.co === "Tractrac" ? "tt" : b.co === "Ikore" ? "ik" : "ch"} ${b.status === "pending" ? "pending" : ""} ${isShort ? "is-short" : ""}`;
+                            const targetCar = cars.find((car) => car.id === b.carId);
                             
                             blocks.push(
                               <motion.div
@@ -597,14 +636,36 @@ export default function FleetBoardPage() {
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.2 }}
-                                title={`${activeStart} - ${activeEnd} · ${b.staff} · ${b.dest}`}
+                                onMouseEnter={(e) => {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setHoveredBooking({
+                                    booking: b,
+                                    car: targetCar,
+                                    activeStart,
+                                    activeEnd,
+                                    durationMins,
+                                    dateLabel: day.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }),
+                                    x: rect.left + rect.width / 2,
+                                    y: rect.top
+                                  });
+                                }}
+                                onMouseLeave={() => setHoveredBooking(null)}
                               >
-                                <span className="card-time">
-                                  {activeStart} - {activeEnd}
-                                  {b.status === "pending" && " (pending)"}
-                                </span>
-                                <span className="card-staff">{b.staff}</span>
-                                <span className="card-dest">{b.dest}</span>
+                                {isShort ? (
+                                  <>
+                                    <span className="card-time">{activeStart}–{activeEnd}</span>
+                                    <span className="card-staff">{b.staff}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className="card-time">
+                                      {activeStart} - {activeEnd}
+                                      {b.status === "pending" && " (pending)"}
+                                    </span>
+                                    <span className="card-staff">{b.staff}</span>
+                                    <span className="card-dest">{b.dest}</span>
+                                  </>
+                                )}
                               </motion.div>
                             );
                           });
@@ -780,7 +841,21 @@ export default function FleetBoardPage() {
                           return (
                             <div
                               key={b.id}
-                              title={`${b.start}–${b.end} · ${b.staff} · ${b.dest}`}
+                              onMouseEnter={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const dur = Math.max(1, mins(b.end || "22:00") - mins(b.start || "08:00"));
+                                setHoveredBooking({
+                                  booking: b,
+                                  car: c,
+                                  activeStart: b.start || "08:00",
+                                  activeEnd: b.end || "22:00",
+                                  durationMins: dur,
+                                  dateLabel: day.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }),
+                                  x: rect.left + rect.width / 2,
+                                  y: rect.top
+                                });
+                              }}
+                              onMouseLeave={() => setHoveredBooking(null)}
                               style={{
                                 fontSize: "0.68rem",
                                 padding: "2px 6px",
@@ -791,7 +866,8 @@ export default function FleetBoardPage() {
                                 whiteSpace: "nowrap",
                                 overflow: "hidden",
                                 textOverflow: "ellipsis",
-                                fontWeight: 600
+                                fontWeight: 600,
+                                cursor: "pointer"
                               }}
                             >
                               {b.start} {b.staff.split(" ")[0]} ({isOfficeTrip(b) ? (c?.plate !== "TBD" ? c?.plate : c?.name.split(" ")[0]) : b.mode})
@@ -803,6 +879,130 @@ export default function FleetBoardPage() {
                   </div>
                 );
               })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* FLOATING CALENDAR HOVER TOOLTIP */}
+      <AnimatePresence>
+        {hoveredBooking && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.94, y: 4 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.94, y: 4 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            style={{
+              position: "fixed",
+              left: typeof window !== "undefined"
+                ? Math.min(window.innerWidth - 310, Math.max(16, hoveredBooking.x - 145))
+                : hoveredBooking.x - 145,
+              top: hoveredBooking.y > 230 ? hoveredBooking.y - 12 : hoveredBooking.y + 36,
+              transform: hoveredBooking.y > 230 ? "translateY(-100%)" : "none",
+              zIndex: 99999,
+              pointerEvents: "none",
+              width: "290px",
+              background: "#111827",
+              color: "#F9FAFB",
+              borderRadius: "12px",
+              padding: "14px 16px",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.25)",
+              border: "1px solid rgba(255, 255, 255, 0.15)",
+              fontSize: "0.8rem",
+              lineHeight: 1.45
+            }}
+          >
+            {/* Header with times & status */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "10px",
+                borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
+                paddingBottom: "8px"
+              }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, fontSize: "0.88rem", color: "#FFFFFF", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span>{hoveredBooking.activeStart} – {hoveredBooking.activeEnd}</span>
+                  <span style={{ fontSize: "0.7rem", fontWeight: 500, color: "#9CA3AF" }}>({hoveredBooking.durationMins}m)</span>
+                </div>
+                <div style={{ fontSize: "0.7rem", color: "#9CA3AF", marginTop: "1px" }}>
+                  {hoveredBooking.dateLabel}
+                </div>
+              </div>
+              <span
+                style={{
+                  fontSize: "0.68rem",
+                  fontWeight: 700,
+                  padding: "3px 8px",
+                  borderRadius: "999px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.02em",
+                  background: hoveredBooking.booking.status === "pending" ? "#FEF3C7" : "#DCFCE7",
+                  color: hoveredBooking.booking.status === "pending" ? "#92400E" : "#166534"
+                }}
+              >
+                {hoveredBooking.booking.status === "pending" ? "Pending" : "Approved"}
+              </span>
+            </div>
+
+            {/* Details list */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <div>
+                <span style={{ color: "#9CA3AF" }}>Requester: </span>
+                <strong style={{ color: "#F3F4F6" }}>{hoveredBooking.booking.staff}</strong>{" "}
+                <span
+                  className={`co-chip ${hoveredBooking.booking.co === "Tractrac" ? "tt" : hoveredBooking.booking.co === "Ikore" ? "ik" : "ch"}`}
+                  style={{ fontSize: "0.66rem", padding: "1px 6px" }}
+                >
+                  {hoveredBooking.booking.co}
+                </span>
+              </div>
+
+              {hoveredBooking.car && (
+                <div>
+                  <span style={{ color: "#9CA3AF" }}>Vehicle: </span>
+                  <strong style={{ color: "#60A5FA" }}>
+                    {hoveredBooking.car.plate && hoveredBooking.car.plate !== "TBD" ? `${hoveredBooking.car.plate} · ` : ""}
+                    {hoveredBooking.car.name}
+                  </strong>
+                </div>
+              )}
+
+              <div>
+                <span style={{ color: "#9CA3AF" }}>Driver: </span>
+                <span style={{ color: "#F3F4F6", fontWeight: 500 }}>
+                  {hoveredBooking.booking.driver || "Assign any available driver"}
+                </span>
+              </div>
+
+              <div>
+                <span style={{ color: "#9CA3AF" }}>Destination: </span>
+                <span style={{ color: "#F3F4F6", fontWeight: 500 }}>{hoveredBooking.booking.dest || "None"}</span>
+              </div>
+
+              {hoveredBooking.booking.purpose && (
+                <div
+                  style={{
+                    marginTop: "2px",
+                    padding: "6px 8px",
+                    background: "rgba(255, 255, 255, 0.06)",
+                    borderRadius: "6px",
+                    color: "#E5E7EB",
+                    fontSize: "0.75rem"
+                  }}
+                >
+                  <strong>Purpose: </strong>{hoveredBooking.booking.purpose}
+                </div>
+              )}
+
+              {hoveredBooking.booking.manager && (
+                <div style={{ fontSize: "0.72rem", color: "#9CA3AF", marginTop: "2px", borderTop: "1px solid rgba(255, 255, 255, 0.08)", paddingTop: "4px" }}>
+                  Approver: <span style={{ color: "#E5E7EB" }}>{hoveredBooking.booking.manager}</span>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

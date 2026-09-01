@@ -1830,21 +1830,50 @@ strong,
   left: 6px;
   right: 6px;
   border-radius: 8px;
-  padding: 8px 10px;
+  padding: 6px 8px;
   font-size: 0.74rem;
-  line-height: 1.3;
+  line-height: 1.25;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   gap: 2px;
   overflow: hidden;
   border: 1px solid transparent;
-  transition: all 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
   z-index: 2;
+  cursor: pointer;
+  min-height: 22px;
 }
 
 .scheduler-booking-card:hover {
-  filter: brightness(0.97);
+  z-index: 20 !important;
+  box-shadow: 0 6px 16px -2px rgba(0, 0, 0, 0.14), 0 2px 6px -1px rgba(0, 0, 0, 0.08);
+  filter: brightness(0.98);
+}
+
+.scheduler-booking-card.is-short {
+  padding: 2px 6px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.scheduler-booking-card.is-short .card-time {
+  margin-bottom: 0;
+  white-space: nowrap;
+  font-size: 0.7rem;
+}
+
+.scheduler-booking-card.is-short .card-staff {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.7rem;
+}
+
+.scheduler-booking-card.is-short .card-dest {
+  display: none;
 }
 
 .scheduler-booking-card.tt {
@@ -1882,19 +1911,25 @@ strong,
 }
 
 .scheduler-booking-card .card-time {
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.74rem;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
 }
 
 .scheduler-booking-card .card-staff {
-  font-weight: 400;
-  opacity: 0.9;
+  font-weight: 500;
+  opacity: 0.95;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .scheduler-booking-card .card-dest {
   font-weight: 400;
-  opacity: 0.8;
+  opacity: 0.85;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Red current time indicator line spanning across all columns */
