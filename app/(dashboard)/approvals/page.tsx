@@ -1,10 +1,12 @@
 "use client";
 
-import React from "react";
-import { useFleet, DRIVER_NAMES } from "../layout";
+import React, { useState, useEffect } from "react";
+import { useFleet } from "../layout";
 import { API_BASE_URL } from "../../config";
 import Dropdown from "../../components/Dropdown";
-import { isBookingOnDate, getBookingDayTimes, getBookingDayTimesForVal, getOverlappingDates, mins } from "../../utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { IconEdit, IconTrash, IconX, IconCheck, IconAlertTriangle, IconSteeringWheel } from "@tabler/icons-react";
+import { isBookingOnDate, getBookingDayTimes, getBookingDayTimesForVal, getOverlappingDates, mins, checkBookingConflict } from "../../utils";
 
 const DAY_START = 8;
 const DAY_END = 22;
@@ -16,11 +18,12 @@ export default function ApprovalsPage() {
     cars,
     bookings,
     setBookings,
+    drivers,
     showToastMsg
   } = useFleet();
 
-  const [isMobile, setIsMobile] = React.useState(false);
-  React.useEffect(() => {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 1024);
     };
@@ -30,6 +33,30 @@ export default function ApprovalsPage() {
   }, []);
 
   const todayISO = new Date().toISOString().slice(0, 10);
+
+  // Edit Modal State
+  const [editingTrip, setEditingTrip] = useState<any | null>(null);
+  const [editCarId, setEditCarId] = useState<number | string>(1);
+  const [editMode, setEditMode] = useState("Office car");
+  const [editStartDate, setEditStartDate] = useState(todayISO);
+  const [editEndDate, setEditEndDate] = useState(todayISO);
+  const [editStart, setEditStart] = useState("08:00");
+  const [editEnd, setEditEnd] = useState("10:00");
+  const [editDriver, setEditDriver] = useState("Assign any available driver");
+  const [editDest, setEditDest] = useState("");
+  const [editPurpose, setEditPurpose] = useState("");
+  const [editCost, setEditCost] = useState<number | "">("");
+  const [editReceiptName, setEditReceiptName] = useState("");
+  const [editReceiptURL, setEditReceiptURL] = useState("");
+  const [editMsg, setEditMsg] = useState({ text: "", type: "" });
+  const [isEditPending, setIsEditPending] = useState(false);
+
+  // Delete Modal State
+  const [deletingTrip, setDeletingTrip] = useState<any | null>(null);
+  const [isDeletePending, setIsDeletePending] = useState(false);
+
+  // Card-specific assigned driver draft state
+  const [cardDrivers, setCardDrivers] = useState<Record<number, string>>({});
 
   const modeOptions = [
     { value: "Office car", label: "Office car" },
@@ -44,14 +71,16 @@ export default function ApprovalsPage() {
 
   const driverOptions = [
     { value: "Assign any available driver", label: "Assign any available driver" },
-    ...DRIVER_NAMES.map((d) => ({ value: d, label: d })),
+    ...drivers.map((d) => ({
+      value: d.name,
+      label: `${d.name} (${d.co === "Tractrac" ? "TracTrac" : d.co === "Ikore" ? "Ikore" : "ChananHill"})`
+    })),
     { value: "Self-drive (approved staff)", label: "Self-drive (approved staff)" },
     { value: "Bolt ride (arranged)", label: "Bolt ride (arranged)" },
     { value: "Hired vehicle with driver", label: "Hired vehicle with driver" }
   ];
 
   const isOfficeTrip = (b: any) => !b.mode || b.mode === "Office car";
-
 
   const fmtN = (n: number): string => {
     return n.toLocaleString("en-NG");
@@ -60,15 +89,42 @@ export default function ApprovalsPage() {
   // Actions
   const handleApprove = async (id: number) => {
     if (!currentUser) return;
+    const b = bookings.find((x) => x.id === id);
+    if (!b) return;
+    const assignedDriver = cardDrivers[id] || b?.driver || "Assign any available driver";
+    const [sDate, eDate] = b.date.includes(" to ") ? b.date.split(" to ") : [b.date, b.date];
+
+    // Conflict check
+    const conflict = checkBookingConflict({
+      bookingId: id,
+      carId: b.carId,
+      mode: b.mode,
+      driver: assignedDriver,
+      startDate: sDate,
+      endDate: eDate,
+      startTime: b.start || "08:00",
+      endTime: b.end || "22:00",
+      bookings,
+      cars
+    });
+
+    if (conflict.hasConflict) {
+      showToastMsg(`Cannot approve: ${conflict.errorMessage}`);
+      return;
+    }
+
     try {
+      const payload: any = {
+        status: "approved",
+        driver: assignedDriver,
+        decidedAt: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+        decidedBy: currentUser.name
+      };
+
       const response = await fetch(`${API_BASE_URL}/api/bookings/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "approved",
-          decidedAt: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-          decidedBy: currentUser.name
-        })
+        body: JSON.stringify(payload)
       });
       if (!response.ok) {
         const errBody = await response.json().catch(() => ({}));
@@ -76,8 +132,8 @@ export default function ApprovalsPage() {
         throw new Error(errBody?.error || "Server error");
       }
       const updated = await response.json();
-      setBookings(bookings.map((b) => (b.id === id ? updated : b)));
-      showToastMsg("Approved - trip confirmed");
+      setBookings(bookings.map((item) => (item.id === id ? updated : item)));
+      showToastMsg(`Approved - trip confirmed for ${assignedDriver}`);
     } catch (err: any) {
       showToastMsg(`Failed to approve: ${err?.message || "Unknown error"}`);
     }
@@ -126,31 +182,25 @@ export default function ApprovalsPage() {
     const finalStart = fields.start !== undefined ? fields.start : original.start;
     const finalEnd = fields.end !== undefined ? fields.end : original.end;
     const finalMode = fields.mode !== undefined ? fields.mode : original.mode;
+    const finalDriver = fields.driver !== undefined ? fields.driver : original.driver;
+    const [sDate, eDate] = original.date.includes(" to ") ? original.date.split(" to ") : [original.date, original.date];
 
-    if (!finalMode || finalMode === "Office car") {
-      const clash = bookings.find((x) => {
-        if (x.id === id || x.carId !== finalCarId || x.status === "declined" || !isOfficeTrip(x)) return false;
-        
-        const [start1, end1] = original.date.includes(" to ") ? original.date.split(" to ") : [original.date, original.date];
-        const [start2, end2] = x.date.includes(" to ") ? x.date.split(" to ") : [x.date, x.date];
-        
-        if (!(start1 <= end2 && start2 <= end1)) return false;
-        
-        const overlapDays = getOverlappingDates(start1, end1, start2, end2);
-        if (overlapDays.length > 1) return true;
-        if (overlapDays.length === 1) {
-          const targetDate = overlapDays[0];
-          const t1 = getBookingDayTimesForVal(start1, end1, finalStart, finalEnd, targetDate);
-          const t2 = getBookingDayTimes(x, targetDate);
-          return mins(t1.start) < mins(t2.end) && mins(t2.start) < mins(t1.end);
-        }
-        return false;
-      });
-      if (clash) {
-        const c = cars.find((car) => car.id === finalCarId);
-        showToastMsg(`${c?.name || "Vehicle"} is taken during this period (${clash.staff})`);
-        return;
-      }
+    const conflict = checkBookingConflict({
+      bookingId: id,
+      carId: finalCarId,
+      mode: finalMode,
+      driver: finalDriver,
+      startDate: sDate,
+      endDate: eDate,
+      startTime: finalStart,
+      endTime: finalEnd,
+      bookings,
+      cars
+    });
+
+    if (conflict.hasConflict) {
+      showToastMsg(conflict.errorMessage || "Adjustment causes a booking conflict");
+      return;
     }
 
     const updatedFields = {
@@ -185,15 +235,136 @@ export default function ApprovalsPage() {
     }
   };
 
+  // Open Edit Modal
+  const handleOpenEditTrip = (b: any) => {
+    setEditingTrip(b);
+    setEditMsg({ text: "", type: "" });
+    setEditCarId(b.carId || 1);
+    setEditMode(b.mode || "Office car");
+    const [sDate, eDate] = b.date.includes(" to ") ? b.date.split(" to ") : [b.date, b.date];
+    setEditStartDate(sDate);
+    setEditEndDate(eDate);
+    setEditStart(b.start || "08:00");
+    setEditEnd(b.end || "10:00");
+    setEditDriver(b.driver || "Assign any available driver");
+    setEditDest(b.dest || "");
+    setEditPurpose(b.purpose || "");
+    setEditCost(b.cost !== undefined && b.cost !== null ? b.cost : "");
+    setEditReceiptName(b.receiptName || "");
+    setEditReceiptURL(b.receiptURL || "");
+  };
+
+  // Save Trip Edit
+  const handleSaveTripEdit = async () => {
+    if (!editingTrip) return;
+    setEditMsg({ text: "", type: "" });
+
+    if (!editStartDate || !editEndDate || !editStart || !editEnd) {
+      setEditMsg({ text: "Dates and times are required.", type: "err" });
+      return;
+    }
+    if (editEndDate < editStartDate) {
+      setEditMsg({ text: "End date cannot be before start date.", type: "err" });
+      return;
+    }
+    if (mins(editStart) < DAY_START * 60 || mins(editEnd) > DAY_END * 60) {
+      setEditMsg({ text: "Trips must fall between 08:00 and 22:00.", type: "err" });
+      return;
+    }
+    if (editStartDate === editEndDate && mins(editEnd) <= mins(editStart)) {
+      setEditMsg({ text: "End time must be after start time.", type: "err" });
+      return;
+    }
+
+    const finalCarId = editMode === "Office car" && typeof editCarId === "number" ? editCarId : null;
+
+    const conflict = checkBookingConflict({
+      bookingId: editingTrip.id,
+      carId: finalCarId,
+      mode: editMode,
+      driver: editDriver,
+      startDate: editStartDate,
+      endDate: editEndDate,
+      startTime: editStart,
+      endTime: editEnd,
+      bookings,
+      cars
+    });
+
+    if (conflict.hasConflict) {
+      setEditMsg({
+        text: conflict.errorMessage || "Schedule conflict detected.",
+        type: "err"
+      });
+      return;
+    }
+
+    const finalDate = editStartDate === editEndDate ? editStartDate : `${editStartDate} to ${editEndDate}`;
+
+    const payload: any = {
+      carId: finalCarId,
+      mode: editMode,
+      date: finalDate,
+      start: editStart,
+      end: editEnd,
+      driver: editDriver,
+      dest: editDest.trim() || "None",
+      purpose: editPurpose.trim(),
+      adjustedBy: currentUser?.name
+    };
+
+    if (editMode !== "Office car") {
+      payload.cost = editCost === "" ? null : Number(editCost);
+      payload.receiptName = editReceiptName || null;
+      payload.receiptURL = editReceiptURL || null;
+    }
+
+    setIsEditPending(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/${editingTrip.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error();
+      const updated = await response.json();
+      setBookings(bookings.map((b) => (b.id === editingTrip.id ? updated : b)));
+      showToastMsg("Trip updated successfully");
+      setEditingTrip(null);
+    } catch (err) {
+      setEditMsg({ text: "Failed to update trip on server.", type: "err" });
+    } finally {
+      setIsEditPending(false);
+    }
+  };
+
+  // Delete Trip
+  const handleDeleteTrip = async (id: number) => {
+    setIsDeletePending(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/${id}`, {
+        method: "DELETE"
+      });
+      if (!response.ok) throw new Error();
+      setBookings(bookings.filter((b) => b.id !== id));
+      showToastMsg("Trip request removed");
+      setDeletingTrip(null);
+    } catch (err) {
+      showToastMsg("Failed to delete trip");
+    } finally {
+      setIsDeletePending(false);
+    }
+  };
+
   const isAdminUser = currentUser?.name === ADMIN_NAME || currentUser?.name === "Divine Wisdom";
   const mine = (b: any) => currentUser && (isAdminUser || b.manager === currentUser.name);
   
   const pending = bookings.filter((b) => b.status === "pending").filter(mine);
-  const activeToday = bookings.filter((b) => isBookingOnDate(b.date, todayISO) && b.status === "approved");
+  const activeToday = bookings.filter((b) => isBookingOnDate(b.date, todayISO) && b.status === "approved" && mine(b));
   const decided = bookings.filter((b) => b.status !== "pending" && b.decidedAt && mine(b)).reverse();
 
-  const [currentPage, setCurrentPage] = React.useState(1);
-  const [historyPage, setHistoryPage] = React.useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [historyPage, setHistoryPage] = useState(1);
   const itemsPerPage = 5;
 
   const currentItems = [
@@ -207,13 +378,13 @@ export default function ApprovalsPage() {
   const totalHistoryPages = Math.ceil(decided.length / itemsPerPage);
   const paginatedHistory = decided.slice((historyPage - 1) * itemsPerPage, historyPage * itemsPerPage);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (currentPage > totalCurrentPages && totalCurrentPages > 0) {
       setCurrentPage(totalCurrentPages);
     }
   }, [currentItems.length, totalCurrentPages, currentPage]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (historyPage > totalHistoryPages && totalHistoryPages > 0) {
       setHistoryPage(totalHistoryPages);
     }
@@ -223,11 +394,11 @@ export default function ApprovalsPage() {
     <section className="active">
       {/* Header Panel */}
       <div style={{ background: "#F9FAFB", borderRadius: "12px", padding: "28px", marginBottom: "32px" }}>
-        <h2 style={{ fontSize: "1.1rem", fontWeight: 500, color: "#111827", marginBottom: "10px" }}>Approvals</h2>
+        <h2 style={{ fontSize: "1.1rem", fontWeight: 500, color: "#111827", marginBottom: "10px" }}>Approvals & Trip Management</h2>
         <p style={{ fontSize: "0.82rem", color: "#6B7280", lineHeight: 1.5, margin: 0 }}>
           {isAdminUser
-            ? "As fleet manager you can see and decide every pending request across both companies, and you can adjust any trip: change the vehicle, driver, or timing, or move it to a car hire service or Bolt."
-            : "Booking requests routed to you as an approver. Pending requests hold their slot on the fleet board (shown dashed) so the time cannot be double-booked while a decision is made."}
+            ? "As fleet manager you can review, approve, decline, edit, or delete any booking request across both companies, assign drivers, or adjust trip modes."
+            : "Review booking requests routed to you as an approver. You can assign drivers, edit trip details, approve/decline, or delete requests anytime."}
         </p>
       </div>
 
@@ -238,6 +409,8 @@ export default function ApprovalsPage() {
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
             {paginatedCurrent.map((b) => {
               const c = cars.find((car) => car.id === b.carId);
+              const selectedDriver = cardDrivers[b.id] !== undefined ? cardDrivers[b.id] : b.driver;
+
               if (b.isPending) {
                 return (
                   <div
@@ -248,7 +421,8 @@ export default function ApprovalsPage() {
                       padding: "24px",
                       display: "flex",
                       flexDirection: "column",
-                      gap: "16px"
+                      gap: "16px",
+                      border: "1.5px solid #E5E7EB"
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
@@ -281,20 +455,65 @@ export default function ApprovalsPage() {
                           </div>
                         </div>
                       </div>
-                      <span
-                        style={{
-                          fontSize: "0.7rem",
-                          fontWeight: 600,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.05em",
-                          borderRadius: "999px",
-                          padding: "4px 12px",
-                          background: "#FEF3C7",
-                          color: "#D97706"
-                        }}
-                      >
-                        Pending
-                      </span>
+                      
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span
+                          style={{
+                            fontSize: "0.7rem",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            borderRadius: "999px",
+                            padding: "4px 12px",
+                            background: "#FEF3C7",
+                            color: "#D97706"
+                          }}
+                        >
+                          Pending
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditTrip(b)}
+                          title="Edit request"
+                          style={{
+                            background: "#FFFFFF",
+                            border: "1px solid #E5E7EB",
+                            borderRadius: "6px",
+                            padding: "4px 8px",
+                            fontSize: "0.75rem",
+                            fontWeight: 500,
+                            color: "#374151",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          }}
+                        >
+                          <IconEdit size={13} />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingTrip(b)}
+                          title="Delete request"
+                          style={{
+                            background: "#FEF2F2",
+                            border: "1px solid #FEE2E2",
+                            borderRadius: "6px",
+                            padding: "4px 8px",
+                            fontSize: "0.75rem",
+                            fontWeight: 500,
+                            color: "#DC2626",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          }}
+                        >
+                          <IconTrash size={13} />
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     </div>
 
                     {/* Inner Details Panel (white block) */}
@@ -327,9 +546,17 @@ export default function ApprovalsPage() {
                         </div>
                       </div>
                       <div>
-                        <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Driver</div>
-                        <div style={{ fontSize: "0.88rem", fontWeight: 500, color: "#1F2937", marginTop: "4px" }}>
-                          {b.driver}
+                        <div style={{ fontSize: "0.72rem", color: "#9CA3AF", textTransform: "uppercase", fontWeight: 600, letterSpacing: "0.05em" }}>Assigned Driver</div>
+                        <div style={{ marginTop: "4px" }}>
+                          <Dropdown
+                            options={driverOptions}
+                            value={selectedDriver}
+                            onChange={(val) => {
+                              setCardDrivers({ ...cardDrivers, [b.id]: val });
+                              handleSaveAdjustment(b.id, { driver: val });
+                            }}
+                            searchable={false}
+                          />
                         </div>
                       </div>
                       {b.purpose && (
@@ -382,87 +609,38 @@ export default function ApprovalsPage() {
                       </button>
                     </div>
 
-                    {isAdminUser && (
-                      <details style={{ marginTop: "12px", borderTop: "none" }} className="adj">
-                        <summary style={{ fontSize: "0.78rem", fontWeight: 600, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", padding: "8px 0" }}>
-                          Fleet manager - adjust this trip
-                        </summary>
-                        <div style={{ background: "#FFFFFF", borderRadius: "12px", padding: "16px", marginTop: "8px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                          <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
-                            <div>
-                              <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Trip mode</label>
-                              <Dropdown
-                                options={modeOptions}
-                                value={b.mode || "Office car"}
-                                onChange={(val) => handleSaveAdjustment(b.id, { mode: val })}
-                              />
-                            </div>
-                            <div>
-                              <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Vehicle (office car trips)</label>
-                              <Dropdown
-                                options={carOptions}
-                                value={b.carId}
-                                disabled={!!(b.mode && b.mode !== "Office car")}
-                                onChange={(val) => handleSaveAdjustment(b.id, { carId: Number(val) })}
-                              />
-                            </div>
+                    {/* Adjust details drawer */}
+                    <details style={{ marginTop: "8px", borderTop: "none" }} className="adj">
+                      <summary style={{ fontSize: "0.78rem", fontWeight: 600, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", padding: "8px 0" }}>
+                        Adjust details (vehicle, mode, times)
+                      </summary>
+                      <div style={{ background: "#FFFFFF", borderRadius: "12px", padding: "16px", marginTop: "8px", display: "flex", flexDirection: "column", gap: "12px" }}>
+                        <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
+                          <div>
+                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Trip mode</label>
+                            <Dropdown
+                              options={modeOptions}
+                              value={b.mode || "Office car"}
+                              onChange={(val) => handleSaveAdjustment(b.id, { mode: val })}
+                            />
                           </div>
-                          <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
-                            <div>
-                              <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Driver</label>
-                              <Dropdown
-                                options={driverOptions}
-                                value={b.driver}
-                                onChange={(val) => handleSaveAdjustment(b.id, { driver: val })}
-                              />
-                            </div>
-                            <div>
-                              <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Timing</label>
-                              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                                <input
-                                  type="time"
-                                  value={b.start}
-                                  style={{
-                                    border: "none",
-                                    background: "#F3F4F6",
-                                    borderRadius: "8px",
-                                    padding: "10px 12px",
-                                    fontSize: "0.85rem",
-                                    outline: "none",
-                                    color: "#1F2937",
-                                    width: "100%"
-                                  }}
-                                  onChange={(e) =>
-                                    handleSaveAdjustment(b.id, { start: e.target.value })
-                                  }
-                                />
-                                <input
-                                  type="time"
-                                  value={b.end}
-                                  style={{
-                                    border: "none",
-                                    background: "#F3F4F6",
-                                    borderRadius: "8px",
-                                    padding: "10px 12px",
-                                    fontSize: "0.85rem",
-                                    outline: "none",
-                                    color: "#1F2937",
-                                    width: "100%"
-                                  }}
-                                  onChange={(e) =>
-                                    handleSaveAdjustment(b.id, { end: e.target.value })
-                                  }
-                                />
-                              </div>
-                            </div>
+                          <div>
+                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Vehicle (office car trips)</label>
+                            <Dropdown
+                              options={carOptions}
+                              value={b.carId}
+                              disabled={!!(b.mode && b.mode !== "Office car")}
+                              onChange={(val) => handleSaveAdjustment(b.id, { carId: Number(val) })}
+                            />
                           </div>
-                          <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
-                            <div>
-                              <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Ride / hire cost (₦)</label>
+                        </div>
+                        <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
+                          <div>
+                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Timing</label>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
                               <input
-                                type="number"
-                                placeholder="e.g. 4500"
-                                value={b.cost || ""}
+                                type="time"
+                                value={b.start}
                                 style={{
                                   border: "none",
                                   background: "#F3F4F6",
@@ -474,46 +652,56 @@ export default function ApprovalsPage() {
                                   width: "100%"
                                 }}
                                 onChange={(e) =>
-                                  handleSaveAdjustment(b.id, { cost: Number(e.target.value) })
+                                  handleSaveAdjustment(b.id, { start: e.target.value })
                                 }
                               />
-                            </div>
-                            <div>
-                              <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Upload receipt</label>
                               <input
-                                type="file"
-                                accept="image/*,.pdf"
+                                type="time"
+                                value={b.end}
                                 style={{
                                   border: "none",
                                   background: "#F3F4F6",
                                   borderRadius: "8px",
-                                  padding: "8px 12px",
+                                  padding: "10px 12px",
                                   fontSize: "0.85rem",
                                   outline: "none",
                                   color: "#1F2937",
                                   width: "100%"
                                 }}
-                                onChange={(e) => {
-                                    const f = e.target.files?.[0];
-                                    if (f) {
-                                      handleSaveAdjustment(b.id, {
-                                        receiptName: f.name,
-                                        receiptURL: URL.createObjectURL(f)
-                                      });
-                                    }
-                                }}
+                                onChange={(e) =>
+                                  handleSaveAdjustment(b.id, { end: e.target.value })
+                                }
                               />
-                              {b.receiptName && (
-                                <div style={{ fontSize: "0.72rem", color: "#6B7280", marginTop: "4px" }}>On file: {b.receiptName}</div>
-                              )}
                             </div>
                           </div>
+                          <div>
+                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Destination</label>
+                            <input
+                              type="text"
+                              value={b.dest || ""}
+                              placeholder="Destination"
+                              style={{
+                                border: "none",
+                                background: "#F3F4F6",
+                                borderRadius: "8px",
+                                padding: "10px 12px",
+                                fontSize: "0.85rem",
+                                outline: "none",
+                                color: "#1F2937",
+                                width: "100%"
+                              }}
+                              onChange={(e) =>
+                                handleSaveAdjustment(b.id, { dest: e.target.value })
+                              }
+                            />
+                          </div>
                         </div>
-                      </details>
-                    )}
+                      </div>
+                    </details>
                   </div>
                 );
               } else {
+                // Approved / Active Card
                 return (
                   <div
                     key={b.id}
@@ -523,7 +711,8 @@ export default function ApprovalsPage() {
                       padding: "24px",
                       display: "flex",
                       flexDirection: "column",
-                      gap: "16px"
+                      gap: "16px",
+                      border: "1.5px solid #E5E7EB"
                     }}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
@@ -556,23 +745,68 @@ export default function ApprovalsPage() {
                           </div>
                         </div>
                       </div>
-                      <span
-                        style={{
-                          fontSize: "0.7rem",
-                          fontWeight: 600,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.05em",
-                          borderRadius: "999px",
-                          padding: "4px 12px",
-                          background: "#DCFCE7",
-                          color: "#16A34A"
-                        }}
-                      >
-                        Approved
-                      </span>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span
+                          style={{
+                            fontSize: "0.7rem",
+                            fontWeight: 600,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.05em",
+                            borderRadius: "999px",
+                            padding: "4px 12px",
+                            background: "#DCFCE7",
+                            color: "#16A34A"
+                          }}
+                        >
+                          Approved
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditTrip(b)}
+                          title="Edit approved trip"
+                          style={{
+                            background: "#FFFFFF",
+                            border: "1px solid #E5E7EB",
+                            borderRadius: "6px",
+                            padding: "4px 8px",
+                            fontSize: "0.75rem",
+                            fontWeight: 500,
+                            color: "#374151",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          }}
+                        >
+                          <IconEdit size={13} />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeletingTrip(b)}
+                          title="Delete trip"
+                          style={{
+                            background: "#FEF2F2",
+                            border: "1px solid #FEE2E2",
+                            borderRadius: "6px",
+                            padding: "4px 8px",
+                            fontSize: "0.75rem",
+                            fontWeight: 500,
+                            color: "#DC2626",
+                            cursor: "pointer",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          }}
+                        >
+                          <IconTrash size={13} />
+                          <span>Delete</span>
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Inner Details Panel (white block) */}
+                    {/* Inner Details Panel */}
                     <div
                       style={{
                         background: "#FFFFFF",
@@ -627,134 +861,6 @@ export default function ApprovalsPage() {
                         {b.adjustedBy && <span style={{ color: "#D97706", fontWeight: 500 }}>Adjusted by fleet manager</span>}
                       </div>
                     </div>
-
-                    <details style={{ borderTop: "none" }} className="adj">
-                      <summary style={{ fontSize: "0.78rem", fontWeight: 600, color: "#4B5563", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer", padding: "8px 0" }}>
-                        Fleet manager - adjust this trip
-                      </summary>
-                      <div style={{ background: "#FFFFFF", borderRadius: "12px", padding: "16px", marginTop: "8px", display: "flex", flexDirection: "column", gap: "12px" }}>
-                        <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
-                          <div>
-                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Trip mode</label>
-                            <Dropdown
-                              options={modeOptions}
-                              value={b.mode || "Office car"}
-                              onChange={(val) => handleSaveAdjustment(b.id, { mode: val })}
-                            />
-                          </div>
-                          <div>
-                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Vehicle (office car trips)</label>
-                            <Dropdown
-                              options={carOptions}
-                              value={b.carId}
-                              disabled={!!(b.mode && b.mode !== "Office car")}
-                              onChange={(val) => handleSaveAdjustment(b.id, { carId: Number(val) })}
-                            />
-                          </div>
-                        </div>
-                        <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
-                          <div>
-                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Driver</label>
-                            <Dropdown
-                              options={driverOptions}
-                              value={b.driver}
-                              onChange={(val) => handleSaveAdjustment(b.id, { driver: val })}
-                            />
-                          </div>
-                          <div>
-                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Timing</label>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                              <input
-                                type="time"
-                                value={b.start}
-                                style={{
-                                  border: "none",
-                                  background: "#F3F4F6",
-                                  borderRadius: "8px",
-                                  padding: "10px 12px",
-                                  fontSize: "0.85rem",
-                                  outline: "none",
-                                  color: "#1F2937",
-                                  width: "100%"
-                                }}
-                                onChange={(e) =>
-                                  handleSaveAdjustment(b.id, { start: e.target.value })
-                                }
-                              />
-                              <input
-                                type="time"
-                                value={b.end}
-                                style={{
-                                  border: "none",
-                                  background: "#F3F4F6",
-                                  borderRadius: "8px",
-                                  padding: "10px 12px",
-                                  fontSize: "0.85rem",
-                                  outline: "none",
-                                  color: "#1F2937",
-                                  width: "100%"
-                                }}
-                                onChange={(e) =>
-                                  handleSaveAdjustment(b.id, { end: e.target.value })
-                                }
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        <div className="frow" style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "16px", marginTop: 0 }}>
-                          <div>
-                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Ride / hire cost (₦)</label>
-                            <input
-                              type="number"
-                              placeholder="e.g. 4500"
-                              value={b.cost || ""}
-                              style={{
-                                border: "none",
-                                background: "#F3F4F6",
-                                borderRadius: "8px",
-                                padding: "10px 12px",
-                                fontSize: "0.85rem",
-                                outline: "none",
-                                color: "#1F2937",
-                                width: "100%"
-                              }}
-                              onChange={(e) =>
-                                handleSaveAdjustment(b.id, { cost: Number(e.target.value) })
-                              }
-                            />
-                          </div>
-                          <div>
-                            <label style={{ fontSize: "0.75rem", fontWeight: 600, color: "#4B5563", marginBottom: "6px", display: "block" }}>Upload receipt</label>
-                            <input
-                              type="file"
-                              accept="image/*,.pdf"
-                              style={{
-                                border: "none",
-                                background: "#F3F4F6",
-                                borderRadius: "8px",
-                                padding: "8px 12px",
-                                fontSize: "0.85rem",
-                                outline: "none",
-                                color: "#1F2937",
-                                width: "100%"
-                              }}
-                              onChange={(e) => {
-                                  const f = e.target.files?.[0];
-                                  if (f) {
-                                    handleSaveAdjustment(b.id, {
-                                      receiptName: f.name,
-                                      receiptURL: URL.createObjectURL(f)
-                                    });
-                                  }
-                              }}
-                            />
-                            {b.receiptName && (
-                              <div style={{ fontSize: "0.72rem", color: "#6B7280", marginTop: "4px" }}>On file: {b.receiptName}</div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </details>
                   </div>
                 );
               }
@@ -810,7 +916,7 @@ export default function ApprovalsPage() {
 
         {/* Right Column: Recent Activity */}
         <div>
-          <h3 style={{ fontSize: "1rem", fontWeight: 600, color: "#111827", marginBottom: "16px" }}>Recent Activity</h3>
+          <h3 style={{ fontSize: "1rem", fontWeight: 600, color: "#111827", marginBottom: "16px" }}>Recent Decisions</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
             {paginatedHistory.map((b) => {
               const c = cars.find((car) => car.id === b.carId);
@@ -824,29 +930,59 @@ export default function ApprovalsPage() {
                     display: "flex",
                     flexDirection: "column",
                     gap: "12px",
-                    opacity: 0.9
+                    border: "1px solid #E5E7EB"
                   }}
                 >
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
                     <span style={{ fontWeight: 600, fontSize: "0.88rem", color: "#111827" }}>{b.staff}</span>
-                    <span
-                      style={{
-                        fontSize: "0.65rem",
-                        fontWeight: 650,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.05em",
-                        borderRadius: "999px",
-                        padding: "2px 10px",
-                        background: b.status === "approved" ? "#DCFCE7" : b.status === "declined" ? "#FEE2E2" : "#FEF3C7",
-                        color: b.status === "approved" ? "#16A34A" : b.status === "declined" ? "#DC2626" : "#D97706"
-                      }}
-                    >
-                      {b.status}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span
+                        style={{
+                          fontSize: "0.65rem",
+                          fontWeight: 650,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.05em",
+                          borderRadius: "999px",
+                          padding: "2px 10px",
+                          background: b.status === "approved" ? "#DCFCE7" : b.status === "declined" ? "#FEE2E2" : "#FEF3C7",
+                          color: b.status === "approved" ? "#16A34A" : b.status === "declined" ? "#DC2626" : "#D97706"
+                        }}
+                      >
+                        {b.status}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditTrip(b)}
+                        title="Edit trip"
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "#4B5563",
+                          padding: "2px"
+                        }}
+                      >
+                        <IconEdit size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingTrip(b)}
+                        title="Delete trip"
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          cursor: "pointer",
+                          color: "#DC2626",
+                          padding: "2px"
+                        }}
+                      >
+                        <IconTrash size={14} />
+                      </button>
+                    </div>
                   </div>
 
                   <div style={{ fontSize: "0.8rem", color: "#4B5563", lineHeight: 1.4 }}>
-                    {c?.plate ? `${c.plate} · ` : ""}{b.start} - {b.end}
+                    {c?.plate ? `${c.plate} · ` : ""}{b.dest} ({b.date}) · {b.start} - {b.end} · Driver: {b.driver}
                   </div>
 
                   <div style={{ fontSize: "0.72rem", color: "#9CA3AF", borderTop: "1px solid #F3F4F6", paddingTop: "8px" }}>
@@ -858,7 +994,7 @@ export default function ApprovalsPage() {
 
             {decided.length === 0 && (
               <div style={{ padding: "40px", background: "#FAFBFB", borderRadius: "12px", textAlign: "center", color: "#6B7280", fontSize: "0.88rem" }}>
-                No recent activity.
+                No recent decisions.
               </div>
             )}
           </div>
@@ -904,6 +1040,446 @@ export default function ApprovalsPage() {
           )}
         </div>
       </div>
+
+      {/* EDIT TRIP MODAL */}
+      <AnimatePresence>
+        {editingTrip && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.45)",
+              backdropFilter: "blur(4px)",
+              zIndex: 100,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px"
+            }}
+            onClick={() => !isEditPending && setEditingTrip(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                background: "#FFFFFF",
+                borderRadius: "16px",
+                padding: "28px",
+                width: "100%",
+                maxWidth: "600px",
+                maxHeight: "90vh",
+                overflowY: "auto",
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)"
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <div>
+                  <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "#111827", margin: 0 }}>
+                    Edit Trip Details
+                  </h3>
+                  <p style={{ fontSize: "0.78rem", color: "#6B7280", margin: "4px 0 0 0" }}>
+                    Editing request for {editingTrip.staff} ({editingTrip.status})
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => !isEditPending && setEditingTrip(null)}
+                  style={{
+                    background: "#F3F4F6",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "32px",
+                    height: "32px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    color: "#6B7280"
+                  }}
+                >
+                  <IconX size={18} />
+                </button>
+              </div>
+
+              {editMsg.text && (
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    fontSize: "0.82rem",
+                    marginBottom: "16px",
+                    background: editMsg.type === "err" ? "#FEF2F2" : "#F0FDF4",
+                    border: `1px solid ${editMsg.type === "err" ? "#FEE2E2" : "#BBF7D0"}`,
+                    color: editMsg.type === "err" ? "#991B1B" : "#15803D"
+                  }}
+                >
+                  {editMsg.text}
+                </div>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      Trip Mode
+                    </label>
+                    <Dropdown
+                      options={modeOptions}
+                      value={editMode}
+                      onChange={(val) => setEditMode(val)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      Vehicle (office car)
+                    </label>
+                    <Dropdown
+                      options={carOptions}
+                      value={editCarId}
+                      disabled={editMode !== "Office car"}
+                      onChange={(val) => setEditCarId(Number(val))}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      Driver
+                    </label>
+                    <Dropdown
+                      options={driverOptions}
+                      value={editDriver}
+                      onChange={(val) => setEditDriver(val)}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      Destination
+                    </label>
+                    <input
+                      type="text"
+                      value={editDest}
+                      onChange={(e) => setEditDest(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        fontSize: "0.85rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "8px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={editStartDate}
+                      onChange={(e) => {
+                        setEditStartDate(e.target.value);
+                        if (editEndDate < e.target.value) setEditEndDate(e.target.value);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        fontSize: "0.85rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "8px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      min={editStartDate}
+                      value={editEndDate}
+                      onChange={(e) => setEditEndDate(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        fontSize: "0.85rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "8px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      value={editStart}
+                      onChange={(e) => setEditStart(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        fontSize: "0.85rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "8px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      End Time
+                    </label>
+                    <input
+                      type="time"
+                      value={editEnd}
+                      onChange={(e) => setEditEnd(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        fontSize: "0.85rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "8px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {editMode !== "Office car" && (
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "14px" }}>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                        Cost (₦)
+                      </label>
+                      <input
+                        type="number"
+                        placeholder="Cost in Naira"
+                        value={editCost}
+                        onChange={(e) => setEditCost(e.target.value === "" ? "" : Number(e.target.value))}
+                        style={{
+                          width: "100%",
+                          padding: "10px 12px",
+                          fontSize: "0.85rem",
+                          border: "1.5px solid #E5E7EB",
+                          borderRadius: "8px",
+                          outline: "none"
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                        Receipt
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          if (f) {
+                            setEditReceiptName(f.name);
+                            setEditReceiptURL(URL.createObjectURL(f));
+                          }
+                        }}
+                        style={{
+                          width: "100%",
+                          padding: "8px 12px",
+                          fontSize: "0.85rem",
+                          border: "1.5px solid #E5E7EB",
+                          borderRadius: "8px",
+                          outline: "none"
+                        }}
+                      />
+                      {editReceiptName && (
+                        <div style={{ fontSize: "0.72rem", color: "#6B7280", marginTop: "4px" }}>On file: {editReceiptName}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                    Purpose of Trip
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={editPurpose}
+                    onChange={(e) => setEditPurpose(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      fontSize: "0.85rem",
+                      border: "1.5px solid #E5E7EB",
+                      borderRadius: "8px",
+                      outline: "none",
+                      resize: "vertical"
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
+                <button
+                  type="button"
+                  disabled={isEditPending}
+                  onClick={() => setEditingTrip(null)}
+                  style={{
+                    background: "#F3F4F6",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 18px",
+                    fontSize: "0.85rem",
+                    fontWeight: 500,
+                    color: "#374151",
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isEditPending}
+                  onClick={handleSaveTripEdit}
+                  style={{
+                    background: "#1F2937",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 20px",
+                    fontSize: "0.85rem",
+                    fontWeight: 500,
+                    color: "#FFFFFF",
+                    cursor: isEditPending ? "not-allowed" : "pointer"
+                  }}
+                >
+                  {isEditPending ? "Saving..." : "Save Trip Changes"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {deletingTrip && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.45)",
+              backdropFilter: "blur(4px)",
+              zIndex: 100,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px"
+            }}
+            onClick={() => !isDeletePending && setDeletingTrip(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                background: "#FFFFFF",
+                borderRadius: "16px",
+                padding: "24px",
+                width: "100%",
+                maxWidth: "440px",
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)"
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
+                <div
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "50%",
+                    background: "#FEE2E2",
+                    color: "#DC2626",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  <IconAlertTriangle size={20} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: "1rem", fontWeight: 600, color: "#111827", margin: 0 }}>
+                    Delete Trip Request?
+                  </h4>
+                  <p style={{ fontSize: "0.78rem", color: "#6B7280", margin: "2px 0 0 0" }}>
+                    This will permanently remove the booking and release any assigned vehicle slot.
+                  </p>
+                </div>
+              </div>
+
+              <p style={{ fontSize: "0.85rem", color: "#4B5563", lineHeight: 1.5, margin: "0 0 20px 0" }}>
+                Are you sure you want to delete the trip for <strong>{deletingTrip.staff}</strong> to{" "}
+                <strong>{deletingTrip.dest}</strong> on <strong>{deletingTrip.date}</strong>?
+              </p>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button
+                  type="button"
+                  disabled={isDeletePending}
+                  onClick={() => setDeletingTrip(null)}
+                  style={{
+                    background: "#F3F4F6",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "9px 16px",
+                    fontSize: "0.85rem",
+                    fontWeight: 500,
+                    color: "#374151",
+                    cursor: "pointer"
+                  }}
+                >
+                  Keep Trip
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletePending}
+                  onClick={() => handleDeleteTrip(deletingTrip.id)}
+                  style={{
+                    background: "#DC2626",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "9px 18px",
+                    fontSize: "0.85rem",
+                    fontWeight: 500,
+                    color: "#FFFFFF",
+                    cursor: isDeletePending ? "not-allowed" : "pointer"
+                  }}
+                >
+                  {isDeletePending ? "Deleting..." : "Yes, Delete Trip"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }
+

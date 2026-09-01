@@ -4,8 +4,9 @@ import React, { useState, useEffect } from "react";
 import { useFleet, STAFF } from "../layout";
 import { API_BASE_URL } from "../../config";
 import Dropdown from "../../components/Dropdown";
-import { motion } from "framer-motion";
-import { isBookingOnDate, getBookingDayTimes, getBookingDayTimesForVal, getOverlappingDates, mins } from "../../utils";
+import { motion, AnimatePresence } from "framer-motion";
+import { IconEdit, IconTrash, IconX, IconCheck, IconAlertTriangle } from "@tabler/icons-react";
+import { isBookingOnDate, getBookingDayTimes, getBookingDayTimesForVal, getOverlappingDates, mins, checkBookingConflict } from "../../utils";
 
 const DAY_START = 8;
 const DAY_END = 22;
@@ -16,6 +17,7 @@ export default function BookCarPage() {
     cars,
     bookings,
     setBookings,
+    drivers,
     nextBookingId,
     setNextBookingId,
     showToastMsg
@@ -56,6 +58,24 @@ export default function BookCarPage() {
   const [bkPassengerNames, setBkPassengerNames] = useState("");
   const [bookMsg, setBookMsg] = useState({ text: "", type: "" });
   const [isBookPending, setIsBookPending] = useState(false);
+
+  // Edit booking state
+  const [editingBooking, setEditingBooking] = useState<any | null>(null);
+  const [editCar, setEditCar] = useState<number | string>(1);
+  const [editStartDate, setEditStartDate] = useState(todayISO);
+  const [editEndDate, setEditEndDate] = useState(todayISO);
+  const [editStart, setEditStart] = useState("08:00");
+  const [editEnd, setEditEnd] = useState("10:00");
+  const [editManager, setEditManager] = useState("");
+  const [editDest, setEditDest] = useState("");
+  const [editDriver, setEditDriver] = useState("Assign any available driver");
+  const [editPurpose, setEditPurpose] = useState("");
+  const [editMsg, setEditMsg] = useState({ text: "", type: "" });
+  const [isEditPending, setIsEditPending] = useState(false);
+
+  // Delete booking state
+  const [deletingBooking, setDeletingBooking] = useState<any | null>(null);
+  const [isDeletePending, setIsDeletePending] = useState(false);
 
   const getCarCapacity = (name: string): number => {
     const lower = name.toLowerCase();
@@ -134,31 +154,27 @@ export default function BookCarPage() {
       return;
     }
 
-    const clash = bookings.find((b) => {
-      if (bkCar === "bolt" || bkCar === "car_hire") return false;
-      if (b.carId !== bkCar || b.status === "declined" || !isOfficeTrip(b)) return false;
-      const [start1, end1] = [bkStartDate, bkEndDate];
-      const [start2, end2] = b.date.includes(" to ") ? b.date.split(" to ") : [b.date, b.date];
-
-      if (!(start1 <= end2 && start2 <= end1)) return false;
-
-      const overlapDays = getOverlappingDates(start1, end1, start2, end2);
-      if (overlapDays.length > 1) return true;
-      if (overlapDays.length === 1) {
-        const targetDate = overlapDays[0];
-        const t1 = getBookingDayTimesForVal(start1, end1, bkStart, bkEnd, targetDate);
-        const t2 = getBookingDayTimes(b, targetDate);
-        return mins(t1.start) < mins(t2.end) && mins(t2.start) < mins(t1.end);
-      }
-      return false;
-    });
-
     const isThirdParty = bkCar === "bolt" || bkCar === "car_hire";
     const targetCar = typeof bkCar === "number" ? cars.find((c) => c.id === bkCar) : null;
+    const finalCarId = typeof bkCar === "number" ? bkCar : null;
+    const finalMode = bkCar === "bolt" ? "Bolt" : bkCar === "car_hire" ? "Car hire" : "Office car";
+    const finalDriver = bkCar === "bolt" ? "Bolt Driver" : bkCar === "car_hire" ? "Car Hire Driver" : bkDriver;
 
-    if (clash) {
+    const conflict = checkBookingConflict({
+      carId: finalCarId,
+      mode: finalMode,
+      driver: finalDriver,
+      startDate: bkStartDate,
+      endDate: bkEndDate,
+      startTime: bkStart,
+      endTime: bkEnd,
+      bookings,
+      cars
+    });
+
+    if (conflict.hasConflict) {
       setBookMsg({
-        text: `${targetCar?.plate || "Vehicle"} already has a overlapping booking during this period (${clash.staff}, ${clash.co}). Choose another time/dates or vehicle.`,
+        text: conflict.errorMessage || "Schedule conflict detected.",
         type: "err"
       });
       return;
@@ -174,10 +190,6 @@ export default function BookCarPage() {
     const passLabel = numPass > 1 ? ` (${numPass} persons)` : " (1 person)";
     const passNamesSuffix = numPass > 1 && bkPassengerNames.trim() ? ` (With: ${bkPassengerNames.trim()})` : "";
     const finalPurpose = bkPurpose.trim() + passLabel + passNamesSuffix;
-
-    const finalCarId = typeof bkCar === "number" ? bkCar : null;
-    const finalMode = bkCar === "bolt" ? "Bolt" : bkCar === "car_hire" ? "Car hire" : "Office car";
-    const finalDriver = bkCar === "bolt" ? "Bolt Driver" : bkCar === "car_hire" ? "Car Hire Driver" : bkDriver;
 
     const newBkFields = {
       carId: finalCarId,
@@ -248,11 +260,129 @@ export default function BookCarPage() {
 
   const driverOptions = [
     { value: "Assign any available driver", label: "Assign any available driver" },
-    { value: "Peter Agbo", label: "Peter Agbo (TracTrac)" },
-    { value: "Ameh Friday", label: "Ameh Friday (TracTrac)" },
-    { value: "Louis Ogbuneke", label: "Louis Ogbuneke (Ikore)" },
+    ...drivers.map((d) => ({
+      value: d.name,
+      label: `${d.name} (${d.co === "Tractrac" ? "TracTrac" : d.co === "Ikore" ? "Ikore" : "ChananHill"})`
+    })),
     { value: "Self-drive (approved staff)", label: "Self-drive (approved staff)" }
   ];
+
+  const handleOpenEdit = (b: any) => {
+    setEditingBooking(b);
+    setEditMsg({ text: "", type: "" });
+    if (b.mode === "Bolt") setEditCar("bolt");
+    else if (b.mode === "Car hire") setEditCar("car_hire");
+    else setEditCar(b.carId || 1);
+
+    const [sDate, eDate] = b.date.includes(" to ") ? b.date.split(" to ") : [b.date, b.date];
+    setEditStartDate(sDate);
+    setEditEndDate(eDate);
+    setEditStart(b.start || "08:00");
+    setEditEnd(b.end || "10:00");
+    setEditManager(b.manager || "");
+    setEditDest(b.dest || "");
+    setEditDriver(b.driver || "Assign any available driver");
+    setEditPurpose(b.purpose || "");
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingBooking) return;
+    setEditMsg({ text: "", type: "" });
+
+    if (!editStartDate || !editEndDate || !editStart || !editEnd) {
+      setEditMsg({ text: "Please fill in the start date, end date, start time, and end time.", type: "err" });
+      return;
+    }
+    if (editEndDate < editStartDate) {
+      setEditMsg({ text: "End date cannot be before the start date.", type: "err" });
+      return;
+    }
+    if (!editManager) {
+      setEditMsg({ text: "Select the approver for this request.", type: "err" });
+      return;
+    }
+    if (mins(editStart) < DAY_START * 60 || mins(editEnd) > DAY_END * 60) {
+      setEditMsg({ text: "Bookings must fall between 08:00 and 22:00.", type: "err" });
+      return;
+    }
+    if (editStartDate === editEndDate && mins(editEnd) <= mins(editStart)) {
+      setEditMsg({ text: "End time must be after start time.", type: "err" });
+      return;
+    }
+
+    const finalDate = editStartDate === editEndDate ? editStartDate : `${editStartDate} to ${editEndDate}`;
+    const finalCarId = typeof editCar === "number" ? editCar : null;
+    const finalMode = editCar === "bolt" ? "Bolt" : editCar === "car_hire" ? "Car hire" : "Office car";
+    const finalDriver = editCar === "bolt" ? "Bolt Driver" : editCar === "car_hire" ? "Car Hire Driver" : editDriver;
+
+    const conflict = checkBookingConflict({
+      bookingId: editingBooking.id,
+      carId: finalCarId,
+      mode: finalMode,
+      driver: finalDriver,
+      startDate: editStartDate,
+      endDate: editEndDate,
+      startTime: editStart,
+      endTime: editEnd,
+      bookings,
+      cars
+    });
+
+    if (conflict.hasConflict) {
+      setEditMsg({
+        text: conflict.errorMessage || "Schedule conflict detected.",
+        type: "err"
+      });
+      return;
+    }
+
+    const updatePayload = {
+      carId: finalCarId,
+      mode: finalMode,
+      date: finalDate,
+      start: editStart,
+      end: editEnd,
+      dest: editDest.trim() || "None",
+      driver: finalDriver,
+      purpose: editPurpose.trim(),
+      manager: editManager
+    };
+
+    setIsEditPending(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/${editingBooking.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatePayload)
+      });
+      if (!response.ok) throw new Error();
+      const updated = await response.json();
+      setBookings(bookings.map((b) => (b.id === editingBooking.id ? updated : b)));
+      showToastMsg("Booking request updated");
+      setEditingBooking(null);
+    } catch (err) {
+      setEditMsg({ text: "Failed to update booking on server.", type: "err" });
+    } finally {
+      setIsEditPending(false);
+    }
+  };
+
+  const handleDeleteBooking = async (id: number) => {
+    setIsDeletePending(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/bookings/${id}`, {
+        method: "DELETE"
+      });
+      if (!response.ok) throw new Error();
+      setBookings(bookings.filter((b) => b.id !== id));
+      showToastMsg("Booking request canceled and deleted");
+      setDeletingBooking(null);
+    } catch (err) {
+      showToastMsg("Failed to delete booking request");
+    } finally {
+      setIsDeletePending(false);
+    }
+  };
 
   return (
     <section className="active">
@@ -659,6 +789,7 @@ export default function BookCarPage() {
                 <th style={{ padding: "14px 16px", fontSize: "0.78rem", fontWeight: 500, color: "#6B7280" }}>Destination</th>
                 <th style={{ padding: "14px 16px", fontSize: "0.78rem", fontWeight: 500, color: "#6B7280" }}>Approver</th>
                 <th style={{ padding: "14px 16px", fontSize: "0.78rem", fontWeight: 500, color: "#6B7280" }}>Status</th>
+                <th style={{ padding: "14px 16px", fontSize: "0.78rem", fontWeight: 500, color: "#6B7280", textAlign: "right" }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -684,6 +815,8 @@ export default function BookCarPage() {
                     pending: { background: "#FFF9C4", color: "#F57F17", border: "1.5px dashed #FFF59D" },
                     declined: { background: "#FEF2F2", color: "#991B1B", border: "1px solid #FEE2E2" }
                   }[b.status];
+
+                  const canManage = b.status === "pending" && (currentUser?.name === b.staff || b.staff.startsWith(currentUser?.name || "") || isAdminUser);
 
                   return (
                     <tr
@@ -753,6 +886,60 @@ export default function BookCarPage() {
                           {label}
                         </span>
                       </td>
+                      <td style={{ padding: "16px", textAlign: "right" }}>
+                        {canManage ? (
+                          <div style={{ display: "inline-flex", gap: "6px", alignItems: "center" }}>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(b)}
+                              title="Edit booking request"
+                              style={{
+                                background: "#F3F4F6",
+                                border: "1px solid #E5E7EB",
+                                borderRadius: "6px",
+                                padding: "6px 10px",
+                                fontSize: "0.78rem",
+                                fontWeight: 500,
+                                color: "#374151",
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px"
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = "#E5E7EB")}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = "#F3F4F6")}
+                            >
+                              <IconEdit size={14} />
+                              <span>Edit</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setDeletingBooking(b)}
+                              title="Cancel and delete booking request"
+                              style={{
+                                background: "#FEF2F2",
+                                border: "1px solid #FEE2E2",
+                                borderRadius: "6px",
+                                padding: "6px 10px",
+                                fontSize: "0.78rem",
+                                fontWeight: 500,
+                                color: "#DC2626",
+                                cursor: "pointer",
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: "4px"
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.background = "#FEE2E2")}
+                              onMouseLeave={(e) => (e.currentTarget.style.background = "#FEF2F2")}
+                            >
+                              <IconTrash size={14} />
+                              <span>Delete</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ color: "#9CA3AF", fontSize: "0.75rem" }}>—</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 });
@@ -806,6 +993,394 @@ export default function BookCarPage() {
           </div>
         )}
       </div>
+
+      {/* EDIT BOOKING MODAL */}
+      <AnimatePresence>
+        {editingBooking && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.45)",
+              backdropFilter: "blur(4px)",
+              zIndex: 100,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px"
+            }}
+            onClick={() => !isEditPending && setEditingBooking(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                background: "#FFFFFF",
+                borderRadius: "16px",
+                padding: "28px",
+                width: "100%",
+                maxWidth: "580px",
+                maxHeight: "90vh",
+                overflowY: "auto",
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                <div>
+                  <h3 style={{ fontSize: "1.1rem", fontWeight: 600, color: "#111827", margin: 0 }}>
+                    Edit Booking Request
+                  </h3>
+                  <p style={{ fontSize: "0.78rem", color: "#6B7280", margin: "4px 0 0 0" }}>
+                    Modify your trip details before approval.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => !isEditPending && setEditingBooking(null)}
+                  style={{
+                    background: "#F3F4F6",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "32px",
+                    height: "32px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    cursor: "pointer",
+                    color: "#6B7280"
+                  }}
+                >
+                  <IconX size={18} />
+                </button>
+              </div>
+
+              {editMsg.text && (
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    fontSize: "0.82rem",
+                    marginBottom: "16px",
+                    background: editMsg.type === "err" ? "#FEF2F2" : "#F0FDF4",
+                    border: `1px solid ${editMsg.type === "err" ? "#FEE2E2" : "#BBF7D0"}`,
+                    color: editMsg.type === "err" ? "#991B1B" : "#15803D"
+                  }}
+                >
+                  {editMsg.text}
+                </div>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                    Vehicle / Mode
+                  </label>
+                  <Dropdown
+                    options={vehicleOptions}
+                    value={editCar}
+                    onChange={(val) => setEditCar(val === "bolt" || val === "car_hire" ? val : Number(val))}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      min={todayISO}
+                      value={editStartDate}
+                      onChange={(e) => {
+                        setEditStartDate(e.target.value);
+                        if (editEndDate < e.target.value) setEditEndDate(e.target.value);
+                      }}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        fontSize: "0.85rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "8px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      End Date
+                    </label>
+                    <input
+                      type="date"
+                      min={editStartDate || todayISO}
+                      value={editEndDate}
+                      onChange={(e) => setEditEndDate(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        fontSize: "0.85rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "8px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      value={editStart}
+                      onChange={(e) => setEditStart(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        fontSize: "0.85rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "8px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      End Time
+                    </label>
+                    <input
+                      type="time"
+                      value={editEnd}
+                      onChange={(e) => setEditEnd(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        fontSize: "0.85rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "8px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      Destination
+                    </label>
+                    <input
+                      type="text"
+                      value={editDest}
+                      onChange={(e) => setEditDest(e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "10px 12px",
+                        fontSize: "0.85rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "8px",
+                        outline: "none"
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                      Driver
+                    </label>
+                    <Dropdown
+                      options={driverOptions}
+                      value={editDriver}
+                      onChange={(val) => setEditDriver(val)}
+                      searchable={false}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                    Approver
+                  </label>
+                  <Dropdown
+                    options={approverOptions}
+                    value={editManager}
+                    onChange={(val) => setEditManager(val)}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                    Purpose of Trip
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={editPurpose}
+                    onChange={(e) => setEditPurpose(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      fontSize: "0.85rem",
+                      border: "1.5px solid #E5E7EB",
+                      borderRadius: "8px",
+                      outline: "none",
+                      resize: "vertical"
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "12px", marginTop: "24px" }}>
+                <button
+                  type="button"
+                  disabled={isEditPending}
+                  onClick={() => setEditingBooking(null)}
+                  style={{
+                    background: "#F3F4F6",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 18px",
+                    fontSize: "0.85rem",
+                    fontWeight: 500,
+                    color: "#374151",
+                    cursor: "pointer"
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isEditPending}
+                  onClick={handleSaveEdit}
+                  style={{
+                    background: "#1F2937",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "10px 20px",
+                    fontSize: "0.85rem",
+                    fontWeight: 500,
+                    color: "#FFFFFF",
+                    cursor: isEditPending ? "not-allowed" : "pointer"
+                  }}
+                >
+                  {isEditPending ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {deletingBooking && (
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: "rgba(0, 0, 0, 0.45)",
+              backdropFilter: "blur(4px)",
+              zIndex: 100,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "20px"
+            }}
+            onClick={() => !isDeletePending && setDeletingBooking(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                background: "#FFFFFF",
+                borderRadius: "16px",
+                padding: "24px",
+                width: "100%",
+                maxWidth: "440px",
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)"
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "14px" }}>
+                <div
+                  style={{
+                    width: "40px",
+                    height: "40px",
+                    borderRadius: "50%",
+                    background: "#FEE2E2",
+                    color: "#DC2626",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                  }}
+                >
+                  <IconAlertTriangle size={20} />
+                </div>
+                <div>
+                  <h4 style={{ fontSize: "1rem", fontWeight: 600, color: "#111827", margin: 0 }}>
+                    Cancel Booking Request?
+                  </h4>
+                  <p style={{ fontSize: "0.78rem", color: "#6B7280", margin: "2px 0 0 0" }}>
+                    This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              <p style={{ fontSize: "0.85rem", color: "#4B5563", lineHeight: 1.5, margin: "0 0 20px 0" }}>
+                Are you sure you want to delete your booking for <strong>{deletingBooking.dest || "trip"}</strong> on{" "}
+                <strong>{deletingBooking.date} ({deletingBooking.start} - {deletingBooking.end})</strong>?
+              </p>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
+                <button
+                  type="button"
+                  disabled={isDeletePending}
+                  onClick={() => setDeletingBooking(null)}
+                  style={{
+                    background: "#F3F4F6",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "9px 16px",
+                    fontSize: "0.85rem",
+                    fontWeight: 500,
+                    color: "#374151",
+                    cursor: "pointer"
+                  }}
+                >
+                  Keep Request
+                </button>
+                <button
+                  type="button"
+                  disabled={isDeletePending}
+                  onClick={() => handleDeleteBooking(deletingBooking.id)}
+                  style={{
+                    background: "#DC2626",
+                    border: "none",
+                    borderRadius: "8px",
+                    padding: "9px 18px",
+                    fontSize: "0.85rem",
+                    fontWeight: 500,
+                    color: "#FFFFFF",
+                    cursor: isDeletePending ? "not-allowed" : "pointer"
+                  }}
+                >
+                  {isDeletePending ? "Deleting..." : "Yes, Delete Request"}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

@@ -81,6 +81,7 @@ export interface FuelLog {
 }
 
 export interface Driver {
+  id?: number;
   name: string;
   co: "Tractrac" | "Ikore" | "ChananHill";
   phone: string;
@@ -119,6 +120,8 @@ interface FleetContextType {
   setCars: (c: Car[]) => void;
   bookings: Booking[];
   setBookings: (b: Booking[]) => void;
+  drivers: Driver[];
+  setDrivers: (d: Driver[]) => void;
   fuelLogs: FuelLog[];
   setFuelLogs: (f: FuelLog[]) => void;
   maintLogs: MaintenanceLog[];
@@ -251,6 +254,12 @@ export const STAFF: Staff[] = [
   { "name": "Dorcas Jidauna", "designation": null, "dept": null, "co": "ChananHill", "approver": false, "user": "dorcas.jidauna" }
 ];
 
+export const INITIAL_DRIVERS: Driver[] = [
+  { id: 1, name: "Peter Agbo", co: "Tractrac", phone: "0805 771 0284", licence: "ABJ 11-40157 BB7", licExp: "2026-09-22", years: 5, base: "Head office, Utako" },
+  { id: 2, name: "Ameh Friday", co: "Tractrac", phone: "0812 903 5541", licence: "KUJ 07-63920 CC1", licExp: "2028-01-08", years: 11, base: "State office" },
+  { id: 3, name: "Louis Ogbuneke", co: "Ikore", phone: "0803 214 6690", licence: "FKJ 04-88213 AA2", licExp: "2027-03-15", years: 8, base: "Ikore office" }
+];
+
 export const DRIVER_NAMES = ["Peter Agbo", "Ameh Friday", "Louis Ogbuneke"];
 const ADMIN_NAME = "Godsfavour Nyoyoko";
 
@@ -262,6 +271,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [currentUser, setCurrentUser] = useState<Staff | null>(null);
   const [cars, setCars] = useState<Car[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>(INITIAL_DRIVERS);
   const [fuelLogs, setFuelLogs] = useState<FuelLog[]>([]);
   const [maintLogs, setMaintLogs] = useState<MaintenanceLog[]>([]);
   const [issueLogs, setIssueLogs] = useState<IssueLog[]>([]);
@@ -337,6 +347,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const storedBookings = localStorage.getItem("fleet_bookings");
       if (storedBookings) setBookings(JSON.parse(storedBookings));
 
+      const storedDrivers = localStorage.getItem("fleet_drivers");
+      if (storedDrivers) setDrivers(JSON.parse(storedDrivers));
+      else setDrivers(INITIAL_DRIVERS);
+
       const storedFuel = localStorage.getItem("fleet_fuelLogs");
       if (storedFuel) setFuelLogs(JSON.parse(storedFuel));
 
@@ -348,13 +362,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     } catch (cacheErr) {
       console.error("Error reading initial cache", cacheErr);
       setCars(initialCars);
+      setDrivers(INITIAL_DRIVERS);
     }
 
     const fetchInitialData = async () => {
       try {
-        const [carsRes, bookingsRes, fuelRes, maintRes, issuesRes] = await Promise.all([
+        const [carsRes, bookingsRes, driversRes, fuelRes, maintRes, issuesRes] = await Promise.all([
           fetch(`${API_BASE_URL}/api/vehicles`),
           fetch(`${API_BASE_URL}/api/bookings`),
+          fetch(`${API_BASE_URL}/api/drivers`),
           fetch(`${API_BASE_URL}/api/fuel`),
           fetch(`${API_BASE_URL}/api/maintenance`),
           fetch(`${API_BASE_URL}/api/issues`)
@@ -366,6 +382,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         if (bookingsRes.ok) {
           const bookingsData = await bookingsRes.json();
           setBookings(bookingsData);
+        }
+        if (driversRes.ok) {
+          const driversData = await driversRes.json();
+          if (Array.isArray(driversData) && driversData.length > 0) {
+            setDrivers(driversData);
+          }
         }
         if (fuelRes.ok) {
           const fuelData = await fuelRes.json();
@@ -404,6 +426,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!isLoaded) return;
     localStorage.setItem("fleet_bookings", JSON.stringify(bookings));
   }, [bookings, isLoaded]);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+    localStorage.setItem("fleet_drivers", JSON.stringify(drivers));
+  }, [drivers, isLoaded]);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -508,6 +535,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setCars,
         bookings,
         setBookings,
+        drivers,
+        setDrivers,
         fuelLogs,
         setFuelLogs,
         maintLogs,
