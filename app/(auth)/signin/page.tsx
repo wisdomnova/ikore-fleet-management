@@ -685,26 +685,6 @@ export default function SignInPage() {
             >
               {isPending ? "Signing in..." : "Continue"} <IconArrowRight size={18} stroke={1.5} />
             </button>
-
-            {/* Direct Reset Password Link */}
-            <div style={{ textAlign: "center", marginTop: "2px" }}>
-              <button
-                type="button"
-                onClick={openSelfResetModal}
-                style={{
-                  background: "none",
-                  border: "none",
-                  color: "#6B7280",
-                  fontSize: "0.8rem",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  padding: "4px 8px",
-                  textDecoration: "underline"
-                }}
-              >
-                Forgot or need to reset your password?
-              </button>
-            </div>
           </div>
 
           <p
@@ -922,21 +902,23 @@ export default function SignInPage() {
             }}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              initial={{ scale: 0.95, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              exit={{ scale: 0.95, opacity: 0, y: 15 }}
               style={{
-                width: "90%",
-                maxWidth: "440px",
+                width: "92%",
+                maxWidth: "500px",
+                maxHeight: "90vh",
+                overflowY: "auto",
                 background: "#FFFFFF",
-                borderRadius: "16px",
-                padding: "30px",
-                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                borderRadius: "20px",
+                padding: isMobile ? "26px 20px" : "36px 32px",
+                boxShadow: "0 25px 35px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.05)",
                 fontFamily: "'Google Sans Flex', sans-serif"
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-                <h3 style={{ fontSize: "1.2rem", fontWeight: 600, color: "#111827" }}>
+                <h3 style={{ fontSize: "1.35rem", fontWeight: 600, color: "#111827", letterSpacing: "-0.01em" }}>
                   Reset Your Password
                 </h3>
                 <button
@@ -947,29 +929,33 @@ export default function SignInPage() {
                     background: "#F3F4F6",
                     border: "none",
                     borderRadius: "50%",
-                    width: "28px",
-                    height: "28px",
+                    width: "32px",
+                    height: "32px",
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: "#6B7280"
+                    color: "#4B5563",
+                    fontSize: "0.95rem",
+                    transition: "background-color 0.15s"
                   }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = "#E5E7EB")}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "#F3F4F6")}
                 >
                   ✕
                 </button>
               </div>
-              <p style={{ fontSize: "0.82rem", color: "#6B7280", lineHeight: 1.5, marginBottom: "20px" }}>
+              <p style={{ fontSize: "0.86rem", color: "#6B7280", lineHeight: 1.5, marginBottom: "24px" }}>
                 Select your company and staff profile, then enter a new password to reclaim your account.
               </p>
 
               {selfResetMsg.text && (
                 <div
                   style={{
-                    padding: "10px 14px",
-                    borderRadius: "8px",
-                    fontSize: "0.8rem",
-                    marginBottom: "16px",
+                    padding: "12px 16px",
+                    borderRadius: "10px",
+                    fontSize: "0.84rem",
+                    marginBottom: "20px",
                     background: selfResetMsg.type === "err" ? "#FEF2F2" : "#F0FDF4",
                     border: `1px solid ${selfResetMsg.type === "err" ? "#FEE2E2" : "#BBF7D0"}`,
                     color: selfResetMsg.type === "err" ? "#991B1B" : "#15803D"
@@ -979,13 +965,13 @@ export default function SignInPage() {
                 </div>
               )}
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "24px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginBottom: "28px" }}>
                 {/* Company Selection */}
                 <div>
-                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
-                    Company
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 500, color: "#374151", marginBottom: "8px" }}>
+                    Choose company
                   </label>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: "10px" }}>
                     <button
                       type="button"
                       disabled={isSelfResetPending}
@@ -993,17 +979,23 @@ export default function SignInPage() {
                         border: selfResetCo === "Tractrac" ? "1.5px solid var(--tt)" : "1.5px solid #E5E7EB",
                         background: selfResetCo === "Tractrac" ? "var(--tt-soft)" : "#FFFFFF",
                         color: selfResetCo === "Tractrac" ? "var(--tt-dark)" : "#4B5563",
-                        borderRadius: "8px",
-                        padding: "10px 6px",
+                        borderRadius: "10px",
+                        padding: "14px 10px",
                         fontWeight: 500,
-                        fontSize: "0.8rem",
-                        cursor: isSelfResetPending ? "not-allowed" : "pointer"
+                        fontSize: "0.86rem",
+                        cursor: isSelfResetPending ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px",
+                        transition: "all 0.15s"
                       }}
                       onClick={() => {
                         setSelfResetCo("Tractrac");
                         setSelfResetStaff("");
                       }}
                     >
+                      <IconBuildingStore size={18} stroke={1.5} />
                       TracTrac
                     </button>
                     <button
@@ -1013,17 +1005,23 @@ export default function SignInPage() {
                         border: selfResetCo === "Ikore" ? "1.5px solid var(--ik)" : "1.5px solid #E5E7EB",
                         background: selfResetCo === "Ikore" ? "var(--ik-soft)" : "#FFFFFF",
                         color: selfResetCo === "Ikore" ? "var(--ik-dark)" : "#4B5563",
-                        borderRadius: "8px",
-                        padding: "10px 6px",
+                        borderRadius: "10px",
+                        padding: "14px 10px",
                         fontWeight: 500,
-                        fontSize: "0.8rem",
-                        cursor: isSelfResetPending ? "not-allowed" : "pointer"
+                        fontSize: "0.86rem",
+                        cursor: isSelfResetPending ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px",
+                        transition: "all 0.15s"
                       }}
                       onClick={() => {
                         setSelfResetCo("Ikore");
                         setSelfResetStaff("");
                       }}
                     >
+                      <IconBuildingSkyscraper size={18} stroke={1.5} />
                       Ikore
                     </button>
                     <button
@@ -1033,17 +1031,23 @@ export default function SignInPage() {
                         border: selfResetCo === "ChananHill" ? "1.5px solid var(--ch)" : "1.5px solid #E5E7EB",
                         background: selfResetCo === "ChananHill" ? "var(--ch-soft)" : "#FFFFFF",
                         color: selfResetCo === "ChananHill" ? "var(--ch-dark)" : "#4B5563",
-                        borderRadius: "8px",
-                        padding: "10px 6px",
+                        borderRadius: "10px",
+                        padding: "14px 10px",
                         fontWeight: 500,
-                        fontSize: "0.8rem",
-                        cursor: isSelfResetPending ? "not-allowed" : "pointer"
+                        fontSize: "0.86rem",
+                        cursor: isSelfResetPending ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "8px",
+                        transition: "all 0.15s"
                       }}
                       onClick={() => {
                         setSelfResetCo("ChananHill");
                         setSelfResetStaff("");
                       }}
                     >
+                      <IconBuilding size={18} stroke={1.5} />
                       ChananHill
                     </button>
                   </div>
@@ -1051,8 +1055,8 @@ export default function SignInPage() {
 
                 {/* Staff Selection */}
                 <div>
-                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
-                    Select Staff Profile
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 500, color: "#374151", marginBottom: "8px" }}>
+                    Select staff profile
                   </label>
                   <Dropdown
                     options={selfResetStaffOptions}
@@ -1067,7 +1071,7 @@ export default function SignInPage() {
 
                 {/* New Password */}
                 <div>
-                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 500, color: "#374151", marginBottom: "8px" }}>
                     New Password (min. 4 chars)
                   </label>
                   <div style={{ position: "relative" }}>
@@ -1079,8 +1083,8 @@ export default function SignInPage() {
                       disabled={isSelfResetPending}
                       style={{
                         width: "100%",
-                        padding: "11px 42px 11px 14px",
-                        fontSize: "0.88rem",
+                        padding: "13px 44px 13px 14px",
+                        fontSize: "0.92rem",
                         border: "1.5px solid #E5E7EB",
                         borderRadius: "10px",
                         color: "#111827",
@@ -1094,7 +1098,7 @@ export default function SignInPage() {
                       onClick={() => setShowSelfResetNewPw(!showSelfResetNewPw)}
                       style={{
                         position: "absolute",
-                        right: "12px",
+                        right: "14px",
                         top: "50%",
                         transform: "translateY(-50%)",
                         background: "none",
@@ -1115,7 +1119,7 @@ export default function SignInPage() {
 
                 {/* Confirm Password */}
                 <div>
-                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                  <label style={{ display: "block", fontSize: "0.82rem", fontWeight: 500, color: "#374151", marginBottom: "8px" }}>
                     Confirm New Password
                   </label>
                   <div style={{ position: "relative" }}>
@@ -1127,8 +1131,8 @@ export default function SignInPage() {
                       disabled={isSelfResetPending}
                       style={{
                         width: "100%",
-                        padding: "11px 42px 11px 14px",
-                        fontSize: "0.88rem",
+                        padding: "13px 44px 13px 14px",
+                        fontSize: "0.92rem",
                         border: "1.5px solid #E5E7EB",
                         borderRadius: "10px",
                         color: "#111827",
@@ -1142,7 +1146,7 @@ export default function SignInPage() {
                       onClick={() => setShowSelfResetConfirmPw(!showSelfResetConfirmPw)}
                       style={{
                         position: "absolute",
-                        right: "12px",
+                        right: "14px",
                         top: "50%",
                         transform: "translateY(-50%)",
                         background: "none",
@@ -1173,8 +1177,8 @@ export default function SignInPage() {
                     color: "#4B5563",
                     border: "none",
                     borderRadius: "10px",
-                    padding: "12px",
-                    fontSize: "0.88rem",
+                    padding: "14px",
+                    fontSize: "0.9rem",
                     fontWeight: 500,
                     cursor: isSelfResetPending ? "not-allowed" : "pointer",
                     outline: "none"
@@ -1192,8 +1196,8 @@ export default function SignInPage() {
                     color: "#FFFFFF",
                     border: "none",
                     borderRadius: "10px",
-                    padding: "12px",
-                    fontSize: "0.88rem",
+                    padding: "14px",
+                    fontSize: "0.9rem",
                     fontWeight: 500,
                     cursor: isSelfResetPending ? "not-allowed" : "pointer",
                     outline: "none"
