@@ -30,7 +30,7 @@ export default function SignInPage() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Password reset modal states
+  // First-time Password reset modal states (for default password)
   const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
   const [resetPw, setResetPw] = useState("");
   const [confirmResetPw, setConfirmResetPw] = useState("");
@@ -39,6 +39,88 @@ export default function SignInPage() {
   const [resetPwMsg, setResetPwMsg] = useState({ text: "", type: "" });
   const [isResetPending, setIsResetPending] = useState(false);
   const [authenticatedUserObj, setAuthenticatedUserObj] = useState<any>(null);
+
+  // Self-service password reset modal states (for users who forgot their password)
+  const [showSelfResetModal, setShowSelfResetModal] = useState(false);
+  const [selfResetCo, setSelfResetCo] = useState<"Tractrac" | "Ikore" | "ChananHill" | null>(null);
+  const [selfResetStaff, setSelfResetStaff] = useState("");
+  const [selfResetNewPw, setSelfResetNewPw] = useState("");
+  const [selfResetConfirmPw, setSelfResetConfirmPw] = useState("");
+  const [showSelfResetNewPw, setShowSelfResetNewPw] = useState(false);
+  const [showSelfResetConfirmPw, setShowSelfResetConfirmPw] = useState(false);
+  const [selfResetMsg, setSelfResetMsg] = useState({ text: "", type: "" });
+  const [isSelfResetPending, setIsSelfResetPending] = useState(false);
+
+  const openSelfResetModal = () => {
+    setSelfResetCo(pickedCo);
+    setSelfResetStaff(loginStaff);
+    setSelfResetNewPw("");
+    setSelfResetConfirmPw("");
+    setSelfResetMsg({ text: "", type: "" });
+    setShowSelfResetModal(true);
+  };
+
+  const handleSelfResetSubmit = async () => {
+    setSelfResetMsg({ text: "", type: "" });
+    if (!selfResetCo) {
+      setSelfResetMsg({ text: "Please select your company.", type: "err" });
+      return;
+    }
+    if (!selfResetStaff) {
+      setSelfResetMsg({ text: "Please select your name from the staff list.", type: "err" });
+      return;
+    }
+    if (!selfResetNewPw) {
+      setSelfResetMsg({ text: "Please enter a new password.", type: "err" });
+      return;
+    }
+    if (selfResetNewPw.length < 4) {
+      setSelfResetMsg({ text: "Password must be at least 4 characters long.", type: "err" });
+      return;
+    }
+    if (selfResetNewPw !== selfResetConfirmPw) {
+      setSelfResetMsg({ text: "Passwords do not match.", type: "err" });
+      return;
+    }
+
+    const matched = STAFF.find((s) => s.name === selfResetStaff);
+    if (!matched) {
+      setSelfResetMsg({ text: "Staff record not found.", type: "err" });
+      return;
+    }
+
+    setIsSelfResetPending(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/update-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          username: matched.user,
+          password: selfResetNewPw
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to reset password.");
+      }
+
+      // Sync form fields and show friendly notification
+      setPickedCo(selfResetCo);
+      setLoginStaff(selfResetStaff);
+      setLoginPw(selfResetNewPw);
+      setLoginMsg({
+        text: `Password for ${selfResetStaff} was successfully reset! You can now sign in below.`,
+        type: "success"
+      });
+      setShowSelfResetModal(false);
+      setIsSelfResetPending(false);
+    } catch (err) {
+      setSelfResetMsg({ text: "Failed to reset password. Please check your connection and try again.", type: "err" });
+      setIsSelfResetPending(false);
+    }
+  };
 
   const handleSignIn = async () => {
     setLoginMsg({ text: "", type: "" });
@@ -138,6 +220,15 @@ export default function SignInPage() {
 
   const staffOptions = pickedCo
     ? STAFF.filter((s) => s.co === pickedCo)
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map((s) => ({
+          value: s.name,
+          label: s.name + (s.approver ? " (Approver)" : "")
+        }))
+    : [];
+
+  const selfResetStaffOptions = selfResetCo
+    ? STAFF.filter((s) => s.co === selfResetCo)
         .sort((a, b) => a.name.localeCompare(b.name))
         .map((s) => ({
           value: s.name,
@@ -445,18 +536,34 @@ export default function SignInPage() {
 
             {/* Password Input */}
             <div>
-              <label
-                htmlFor="loginPw"
-                style={{
-                  fontSize: "0.78rem",
-                  fontWeight: 500,
-                  color: "#4B5563",
-                  display: "block",
-                  marginBottom: "8px"
-                }}
-              >
-                Password
-              </label>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <label
+                  htmlFor="loginPw"
+                  style={{
+                    fontSize: "0.78rem",
+                    fontWeight: 500,
+                    color: "#4B5563"
+                  }}
+                >
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={openSelfResetModal}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#2563EB",
+                    fontSize: "0.78rem",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    padding: 0,
+                    textDecoration: "underline"
+                  }}
+                >
+                  Forgot password?
+                </button>
+              </div>
               <div style={{ position: "relative", width: "100%" }}>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -506,7 +613,7 @@ export default function SignInPage() {
               </div>
             </div>
 
-            {/* Error Message */}
+            {/* Error / Notification Message */}
             <AnimatePresence>
               {loginMsg.text && (
                 <motion.div
@@ -520,10 +627,32 @@ export default function SignInPage() {
                     borderRadius: "8px",
                     padding: "10px 12px",
                     fontSize: "0.82rem",
-                    fontWeight: 400
+                    fontWeight: 400,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "4px"
                   }}
                 >
-                  {loginMsg.text}
+                  <span>{loginMsg.text}</span>
+                  {loginMsg.type === "err" && (
+                    <button
+                      type="button"
+                      onClick={openSelfResetModal}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#991B1B",
+                        fontSize: "0.78rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        padding: 0,
+                        textAlign: "left",
+                        textDecoration: "underline"
+                      }}
+                    >
+                      Forgot your password? Click here to reset it &rarr;
+                    </button>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -549,13 +678,33 @@ export default function SignInPage() {
                 gap: "8px",
                 outline: "none",
                 width: "100%",
-                marginTop: "8px",
+                marginTop: "4px",
                 transition: "background-color 0.2s"
               }}
               onClick={handleSignIn}
             >
               {isPending ? "Signing in..." : "Continue"} <IconArrowRight size={18} stroke={1.5} />
             </button>
+
+            {/* Direct Reset Password Link */}
+            <div style={{ textAlign: "center", marginTop: "2px" }}>
+              <button
+                type="button"
+                onClick={openSelfResetModal}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#6B7280",
+                  fontSize: "0.8rem",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  padding: "4px 8px",
+                  textDecoration: "underline"
+                }}
+              >
+                Forgot or need to reset your password?
+              </button>
+            </div>
           </div>
 
           <p
@@ -563,7 +712,7 @@ export default function SignInPage() {
               fontSize: "0.76rem",
               fontWeight: 400,
               color: "#9CA3AF",
-              marginTop: "28px",
+              marginTop: "24px",
               lineHeight: "1.4",
               textAlign: "center"
             }}
@@ -573,6 +722,7 @@ export default function SignInPage() {
         </motion.div>
       </div>
 
+      {/* 1. FIRST-TIME SIGN-IN PASSWORD SETUP MODAL */}
       <AnimatePresence>
         {showPasswordResetModal && (
           <motion.div
@@ -743,6 +893,313 @@ export default function SignInPage() {
                   }}
                 >
                   {isResetPending ? "Saving..." : "Save Password"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 2. SELF-SERVICE FORGOT/RESET PASSWORD MODAL */}
+      <AnimatePresence>
+        {showSelfResetModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              width: "100vw",
+              height: "100vh",
+              background: "rgba(0, 0, 0, 0.45)",
+              backdropFilter: "blur(4px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1000
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              style={{
+                width: "90%",
+                maxWidth: "440px",
+                background: "#FFFFFF",
+                borderRadius: "16px",
+                padding: "30px",
+                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+                fontFamily: "'Google Sans Flex', sans-serif"
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
+                <h3 style={{ fontSize: "1.2rem", fontWeight: 600, color: "#111827" }}>
+                  Reset Your Password
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowSelfResetModal(false)}
+                  disabled={isSelfResetPending}
+                  style={{
+                    background: "#F3F4F6",
+                    border: "none",
+                    borderRadius: "50%",
+                    width: "28px",
+                    height: "28px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#6B7280"
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              <p style={{ fontSize: "0.82rem", color: "#6B7280", lineHeight: 1.5, marginBottom: "20px" }}>
+                Select your company and staff profile, then enter a new password to reclaim your account.
+              </p>
+
+              {selfResetMsg.text && (
+                <div
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    fontSize: "0.8rem",
+                    marginBottom: "16px",
+                    background: selfResetMsg.type === "err" ? "#FEF2F2" : "#F0FDF4",
+                    border: `1px solid ${selfResetMsg.type === "err" ? "#FEE2E2" : "#BBF7D0"}`,
+                    color: selfResetMsg.type === "err" ? "#991B1B" : "#15803D"
+                  }}
+                >
+                  {selfResetMsg.text}
+                </div>
+              )}
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "16px", marginBottom: "24px" }}>
+                {/* Company Selection */}
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                    Company
+                  </label>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px" }}>
+                    <button
+                      type="button"
+                      disabled={isSelfResetPending}
+                      style={{
+                        border: selfResetCo === "Tractrac" ? "1.5px solid var(--tt)" : "1.5px solid #E5E7EB",
+                        background: selfResetCo === "Tractrac" ? "var(--tt-soft)" : "#FFFFFF",
+                        color: selfResetCo === "Tractrac" ? "var(--tt-dark)" : "#4B5563",
+                        borderRadius: "8px",
+                        padding: "10px 6px",
+                        fontWeight: 500,
+                        fontSize: "0.8rem",
+                        cursor: isSelfResetPending ? "not-allowed" : "pointer"
+                      }}
+                      onClick={() => {
+                        setSelfResetCo("Tractrac");
+                        setSelfResetStaff("");
+                      }}
+                    >
+                      TracTrac
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSelfResetPending}
+                      style={{
+                        border: selfResetCo === "Ikore" ? "1.5px solid var(--ik)" : "1.5px solid #E5E7EB",
+                        background: selfResetCo === "Ikore" ? "var(--ik-soft)" : "#FFFFFF",
+                        color: selfResetCo === "Ikore" ? "var(--ik-dark)" : "#4B5563",
+                        borderRadius: "8px",
+                        padding: "10px 6px",
+                        fontWeight: 500,
+                        fontSize: "0.8rem",
+                        cursor: isSelfResetPending ? "not-allowed" : "pointer"
+                      }}
+                      onClick={() => {
+                        setSelfResetCo("Ikore");
+                        setSelfResetStaff("");
+                      }}
+                    >
+                      Ikore
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isSelfResetPending}
+                      style={{
+                        border: selfResetCo === "ChananHill" ? "1.5px solid var(--ch)" : "1.5px solid #E5E7EB",
+                        background: selfResetCo === "ChananHill" ? "var(--ch-soft)" : "#FFFFFF",
+                        color: selfResetCo === "ChananHill" ? "var(--ch-dark)" : "#4B5563",
+                        borderRadius: "8px",
+                        padding: "10px 6px",
+                        fontWeight: 500,
+                        fontSize: "0.8rem",
+                        cursor: isSelfResetPending ? "not-allowed" : "pointer"
+                      }}
+                      onClick={() => {
+                        setSelfResetCo("ChananHill");
+                        setSelfResetStaff("");
+                      }}
+                    >
+                      ChananHill
+                    </button>
+                  </div>
+                </div>
+
+                {/* Staff Selection */}
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                    Select Staff Profile
+                  </label>
+                  <Dropdown
+                    options={selfResetStaffOptions}
+                    value={selfResetStaff}
+                    onChange={setSelfResetStaff}
+                    disabled={isSelfResetPending || !selfResetCo}
+                    placeholder={selfResetCo ? "Select your name…" : "Select your company first…"}
+                    icon={<IconUser size={18} stroke={1.5} />}
+                    searchable={true}
+                  />
+                </div>
+
+                {/* New Password */}
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                    New Password (min. 4 chars)
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showSelfResetNewPw ? "text" : "password"}
+                      placeholder="Enter new password"
+                      value={selfResetNewPw}
+                      onChange={(e) => setSelfResetNewPw(e.target.value)}
+                      disabled={isSelfResetPending}
+                      style={{
+                        width: "100%",
+                        padding: "11px 42px 11px 14px",
+                        fontSize: "0.88rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "10px",
+                        color: "#111827",
+                        background: "#FFFFFF",
+                        outline: "none"
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={isSelfResetPending}
+                      onClick={() => setShowSelfResetNewPw(!showSelfResetNewPw)}
+                      style={{
+                        position: "absolute",
+                        right: "12px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: isSelfResetPending ? "not-allowed" : "pointer",
+                        color: "#9CA3AF",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 0,
+                        outline: "none"
+                      }}
+                    >
+                      {showSelfResetNewPw ? <IconEyeOff size={18} stroke={1.5} /> : <IconEye size={18} stroke={1.5} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <label style={{ display: "block", fontSize: "0.78rem", fontWeight: 500, color: "#4B5563", marginBottom: "6px" }}>
+                    Confirm New Password
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={showSelfResetConfirmPw ? "text" : "password"}
+                      placeholder="Confirm new password"
+                      value={selfResetConfirmPw}
+                      onChange={(e) => setSelfResetConfirmPw(e.target.value)}
+                      disabled={isSelfResetPending}
+                      style={{
+                        width: "100%",
+                        padding: "11px 42px 11px 14px",
+                        fontSize: "0.88rem",
+                        border: "1.5px solid #E5E7EB",
+                        borderRadius: "10px",
+                        color: "#111827",
+                        background: "#FFFFFF",
+                        outline: "none"
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={isSelfResetPending}
+                      onClick={() => setShowSelfResetConfirmPw(!showSelfResetConfirmPw)}
+                      style={{
+                        position: "absolute",
+                        right: "12px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: isSelfResetPending ? "not-allowed" : "pointer",
+                        color: "#9CA3AF",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 0,
+                        outline: "none"
+                      }}
+                    >
+                      {showSelfResetConfirmPw ? <IconEyeOff size={18} stroke={1.5} /> : <IconEye size={18} stroke={1.5} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "12px" }}>
+                <button
+                  type="button"
+                  disabled={isSelfResetPending}
+                  onClick={() => setShowSelfResetModal(false)}
+                  style={{
+                    flex: 1,
+                    background: "#F3F4F6",
+                    color: "#4B5563",
+                    border: "none",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    fontSize: "0.88rem",
+                    fontWeight: 500,
+                    cursor: isSelfResetPending ? "not-allowed" : "pointer",
+                    outline: "none"
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSelfResetPending}
+                  onClick={handleSelfResetSubmit}
+                  style={{
+                    flex: 2,
+                    background: isSelfResetPending ? "#6B7280" : "#111827",
+                    color: "#FFFFFF",
+                    border: "none",
+                    borderRadius: "10px",
+                    padding: "12px",
+                    fontSize: "0.88rem",
+                    fontWeight: 500,
+                    cursor: isSelfResetPending ? "not-allowed" : "pointer",
+                    outline: "none"
+                  }}
+                >
+                  {isSelfResetPending ? "Resetting..." : "Reset & Save Password"}
                 </button>
               </div>
             </motion.div>
