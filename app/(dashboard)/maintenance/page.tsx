@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { useFleet } from "../layout";
 import { API_BASE_URL } from "../../config";
 import Dropdown from "../../components/Dropdown";
+import { formatVehiclePapersSummary } from "../../utils";
 
 const SERVICE_INTERVAL = 5000;
 const MAINT_CATEGORIES = [
@@ -292,8 +293,8 @@ export default function MaintenancePage() {
                     · {openIssues} open issue{openIssues > 1 ? "s" : ""}
                   </span>
                 )}
-                {c.papers && (
-                  <span style={{ color: "#8a6200", fontWeight: 600 }}> · {c.papers}</span>
+                {c.papers && formatVehiclePapersSummary(c.papers) && (
+                  <span style={{ color: "#8a6200", fontWeight: 600 }}> · {formatVehiclePapersSummary(c.papers)}</span>
                 )}
               </div>
               {pill}

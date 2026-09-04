@@ -4,6 +4,7 @@ import React from "react";
 import { useFleet } from "../layout";
 import { API_BASE_URL } from "../../config";
 import Dropdown from "../../components/Dropdown";
+import { formatVehiclePapersSummary } from "../../utils";
 
 const ABUJA_SPOTS = [
   "Head office, Utako",
@@ -147,9 +148,9 @@ export default function LocationsPage() {
                   <div>
                     {c.name} · <span className={`co-chip ${c.co === "Tractrac" ? "tt" : c.co === "Ikore" ? "ik" : "ch"}`}>{c.co === "Tractrac" ? "TracTrac" : c.co === "Ikore" ? "Ikore" : "ChananHill"}</span> · Fuel {c.fuel}%
                   </div>
-                  {c.papers && (
+                  {c.papers && formatVehiclePapersSummary(c.papers) && (
                     <div style={{ color: "#D97706", fontWeight: 500, marginTop: "4px" }}>
-                      {c.papers.replace("-", "-")}
+                      {formatVehiclePapersSummary(c.papers)}
                     </div>
                   )}
                 </div>

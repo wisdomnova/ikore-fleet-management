@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useFleet } from "./layout";
 import { motion, AnimatePresence } from "framer-motion";
-import { isBookingOnDate, getBookingDayTimes } from "../utils";
+import { isBookingOnDate, getBookingDayTimes, formatVehiclePapersSummary } from "../utils";
 
 const DAY_START = 8;
 const DAY_END = 22;
@@ -403,9 +403,9 @@ export default function FleetBoardPage() {
                         <span className="v-name-title">{c.name}</span>
                         <div className="v-meta-info" style={{ gap: "2px" }}>
                           <span style={{ fontSize: "0.74rem", color: "#6B7280" }}>Fuel {c.fuel}%</span>
-                          {c.papers && (
+                          {c.papers && formatVehiclePapersSummary(c.papers) && (
                             <span style={{ color: "var(--amber)", fontSize: "0.72rem", fontWeight: 500 }}>
-                              {c.papers}
+                              {formatVehiclePapersSummary(c.papers)}
                             </span>
                           )}
                         </div>

@@ -270,3 +270,26 @@ export function serializeVehicleDocuments(docs: VehicleDocument[]): string | nul
   if (!docs || docs.length === 0) return null;
   return JSON.stringify(docs);
 }
+
+export function formatVehiclePapersSummary(papers?: string | null): string {
+  if (!papers || !papers.trim()) return "";
+  const docs = parseVehicleDocuments(papers);
+  if (docs.length === 0) return "";
+
+  if (docs.length === 1) {
+    const doc = docs[0];
+    if (doc.expiry) {
+      const cleanExp = doc.expiry.replace(/^Papers renewal:\s*/i, "").replace(/^Papers renewal\s*-\s*/i, "");
+      if (doc.name && doc.name !== "Vehicle Papers") {
+        return `${doc.name} - ${cleanExp}`;
+      }
+      return `Papers renewal - ${cleanExp}`;
+    }
+    return doc.name || "";
+  }
+
+  return docs
+    .map((d) => (d.expiry ? `${d.name}: ${d.expiry}` : d.name))
+    .filter(Boolean)
+    .join(" / ");
+}
