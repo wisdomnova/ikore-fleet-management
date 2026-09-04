@@ -249,6 +249,7 @@ export const STAFF: Staff[] = [
   { "name": "Joel Manaram Kwale", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "joel.kwale" },
   { "name": "Ibrahim Usman Liya", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "ibrahim.liya" },
   { "name": "Kalejaiye Jumoke Christy", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "christy.kalejaiye" },
+  { "name": "Ovo Ugbebor", "designation": null, "dept": null, "co": "Ikore", "approver": false, "user": "ovo.ugbebor" },
   { "name": "Martina Hembafan", "designation": null, "dept": null, "co": "ChananHill", "approver": false, "user": "martina.hembafan" },
   { "name": "Alexandra Anebo", "designation": null, "dept": null, "co": "ChananHill", "approver": false, "user": "alexandra.anebor" },
   { "name": "Dorcas Jidauna", "designation": null, "dept": null, "co": "ChananHill", "approver": false, "user": "dorcas.jidauna" }
